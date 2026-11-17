@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="bookid" xml:lang="$language">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="bookid">$identifier</dc:identifier>
+    <dc:title>$title</dc:title>$creator_item
+    <dc:language>$language</dc:language>$description_item
+    <meta property="dcterms:modified">$modified</meta>
+  </metadata>
+  <manifest>
+$manifest
+  </manifest>
+  <spine toc="ncx">
+$spine
+  </spine>
+</package>
