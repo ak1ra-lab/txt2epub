@@ -279,3 +279,24 @@ def test_off_dedupe_keeps_both_chapters():
     result = parse_text(text, dedupe="off")
     assert result.stats.chapters == 2
     assert result.coverage.ok
+
+
+def test_section_hierarchy():
+    text = (
+        "第1章 占位标题\n"
+        "第1节 占位小节\n"
+        "　　这是小节正文。\n"
+        "第2节 占位小节\n"
+        "　　这是小节正文。\n"
+        "第2章 占位标题\n"
+        "　　这是章节正文。\n"
+    )
+    result = parse_text(text)
+    assert result.stats.chapters == 2
+    assert result.stats.sections == 2
+    chapter = result.roots[0]
+    assert [child.heading.title for child in chapter.children] == [
+        "第1节 占位小节",
+        "第2节 占位小节",
+    ]
+    assert result.coverage.ok

@@ -547,17 +547,22 @@ class _Parser:
 
             if candidate.deferred:
                 reason = noise_reason(line, self.rules)
-                if reason is not None and not self.keep_noise:
-                    self.ledger.mark(line.line_no, Disposition.NOISE, f"noise:{reason}")
-                    self.issues.append(
-                        Issue(
-                            severity="info",
-                            code="noise_removed",
-                            line_no=line.line_no,
-                            message="noisy indented heading candidate removed",
-                            detail={"pattern": reason},
+                if reason is not None:
+                    if not self.keep_noise:
+                        self.ledger.mark(
+                            line.line_no, Disposition.NOISE, f"noise:{reason}"
                         )
-                    )
+                        self.issues.append(
+                            Issue(
+                                severity="info",
+                                code="noise_removed",
+                                line_no=line.line_no,
+                                message="noisy indented heading candidate removed",
+                                detail={"pattern": reason},
+                            )
+                        )
+                        continue
+                    self.ledger.mark(line.line_no, Disposition.BODY, "noise_kept")
                     continue
                 if self._reject_indented(candidate, line):
                     continue

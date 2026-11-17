@@ -139,9 +139,7 @@ def report_human(
         lines.append(f"Output:     {output}")
 
     warnings = [
-        issue
-        for issue in result.issues
-        if issue.severity in ("warning", "error") and issue.code != "too_long"
+        issue for issue in result.issues if issue.severity in ("warning", "error")
     ]
     if warnings and limit > 0:
         lines.append("")
