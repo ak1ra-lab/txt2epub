@@ -1,9 +1,8 @@
 # txt2epub
 
-Auditable Chinese TXT to EPUB 3 converter with multi-level TOC.
+An auditable Chinese TXT → EPUB 3 converter with multi-level navigation.
 
-> **Status:** pre-release. The distribution is named `txt2epub-cli`; the CLI
-> command is `txt2epub` and the import package is `txt2epub_cli`.
+> Status: under active implementation.
 
 ## License
 
