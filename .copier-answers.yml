@@ -1,0 +1,24 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: c0a9e80c5cf56885dd21619006eb5b98d5642024
+_src_path: git@github.com:ak1ra-lab/copier-pyproject.git
+author_email: git@ak1ra.xyz
+author_name: ak1ra
+copyright_date: '2026'
+copyright_holder: ak1ra
+copyright_license: GPL-3.0-only
+default_branch: main
+docs_hosting: custom-url
+docs_site_url: ''
+project_description: Auditable Chinese TXT to EPUB 3 converter with multi-level TOC
+project_kind: cli
+project_name: txt2epub
+python_min_version: '3.11'
+python_package_command_line_name: txt2epub
+python_package_distribution_name: txt2epub-cli
+python_package_import_name: txt2epub_cli
+repository_name: txt2epub
+repository_namespace: ak1ra-lab
+repository_provider_host: github.com
+repository_provider_kind: custom
+requires_python: '>=3.11'
+with_ansible: false
