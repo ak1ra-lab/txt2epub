@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "fixtures": {
+    "combined_prefix.txt": {
+      "volumes": 2,
+      "chapters": 4,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一卷 占位卷名",
+      "last": "第2章 占位章名",
+      "coverage_ok": true
+    },
+    "combined_volume_special.txt": {
+      "volumes": 1,
+      "chapters": 2,
+      "sections": 0,
+      "specials": 1,
+      "first": "第一卷 占位卷名",
+      "last": "第2章 占位标题",
+      "coverage_ok": true
+    },
+    "duplicates_noise.txt": {
+      "volumes": 0,
+      "chapters": 2,
+      "sections": 0,
+      "specials": 0,
+      "first": "第1章 占位标题",
+      "last": "第2章 占位标题",
+      "coverage_ok": true
+    },
+    "false_positives.txt": {
+      "volumes": 0,
+      "chapters": 1,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一章 占位标题",
+      "last": "第一章 占位标题",
+      "coverage_ok": true
+    },
+    "front_matter.txt": {
+      "volumes": 0,
+      "chapters": 2,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一章 占位标题",
+      "last": "第二章 占位标题",
+      "coverage_ok": true
+    },
+    "indented_headings.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 1,
+      "first": "序章",
+      "last": "第三章 占位标题",
+      "coverage_ok": true
+    },
+    "multi_number.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 0,
+      "first": "第104、105章 占位标题",
+      "last": "第1037章—第1038章 占位合章",
+      "coverage_ok": true
+    },
+    "no_separator.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一章占位标题",
+      "last": "第三章占位标题",
+      "coverage_ok": true
+    },
+    "simple_arabic.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 0,
+      "first": "第1章 占位标题",
+      "last": "第3章 占位标题",
+      "coverage_ok": true
+    },
+    "simple_chinese.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一章 占位标题",
+      "last": "第三章 占位标题",
+      "coverage_ok": true
+    },
+    "special_sections.txt": {
+      "volumes": 1,
+      "chapters": 1,
+      "sections": 0,
+      "specials": 6,
+      "first": "序章",
+      "last": "完本感言",
+      "coverage_ok": true
+    },
+    "toc_page.txt": {
+      "volumes": 0,
+      "chapters": 2,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一章 占位标题",
+      "last": "第二章 占位标题",
+      "coverage_ok": true
+    },
+    "volume_chapter.txt": {
+      "volumes": 2,
+      "chapters": 4,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一卷 占位卷名",
+      "last": "第二章 占位标题",
+      "coverage_ok": true
+    },
+    "volume_no_blank.txt": {
+      "volumes": 2,
+      "chapters": 4,
+      "sections": 0,
+      "specials": 0,
+      "first": "第一卷 占位卷名",
+      "last": "第二章 占位标题",
+      "coverage_ok": true
+    },
+    "zero_padded.txt": {
+      "volumes": 0,
+      "chapters": 3,
+      "sections": 0,
+      "specials": 0,
+      "first": "第0001章 占位标题",
+      "last": "第0003章 占位标题",
+      "coverage_ok": true
+    }
+  }
+}

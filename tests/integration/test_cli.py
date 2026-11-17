@@ -92,3 +92,32 @@ def test_cli_strict_profile_rejects_no_separator():
     )
     assert result.returncode == 0, result.stderr
     assert "0 chapters" in result.stdout
+
+
+def test_convert_refuses_coverage_loss_unless_allowed(monkeypatch, tmp_path: Path):
+    from txt2epub_cli import cli
+    from txt2epub_cli.parser import parse_file
+
+    result = parse_file(FIXTURES / "simple_arabic.txt")
+    result.coverage.ok = False
+    monkeypatch.setattr(cli, "parse_file", lambda *args, **kwargs: result)
+
+    output = tmp_path / "simple_arabic.epub"
+    code = cli.main(
+        ["convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path)]
+    )
+    assert code == 2
+    assert not output.exists()
+
+    code = cli.main(
+        [
+            "convert",
+            str(FIXTURES / "simple_arabic.txt"),
+            "-o",
+            str(tmp_path),
+            "--allow-loss",
+            "--yes",
+        ]
+    )
+    assert code == 0
+    assert output.exists()

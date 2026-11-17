@@ -138,3 +138,15 @@ def test_sequence_handles_multi_number_ranges():
     issues: list[Issue] = []
     counts = check_number_sequence(roots, issues)
     assert counts["gaps"] == 0
+
+
+def test_sequence_handles_span_number_field():
+    roots, _ = build_tree(
+        [
+            heading("c1", HeadingKind.CHAPTER, "第1037章—第1038章", 1, "1037—1038"),
+            heading("c2", HeadingKind.CHAPTER, "第1039章", 2, "1039"),
+        ]
+    )
+    issues: list[Issue] = []
+    counts = check_number_sequence(roots, issues)
+    assert counts["gaps"] == 0

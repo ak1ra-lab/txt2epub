@@ -388,11 +388,16 @@ class _Parser:
     def _accept_chapter(
         self, candidate: Candidate, line: SourceLine, text: str
     ) -> list[Heading]:
+        number = candidate.number
+        number2 = candidate.detail.get("number2")
+        if number and number2:
+            # Preserve both endpoints so sequence checks know the span's end.
+            number = f"{number}—{number2}"
         heading = self._add_heading(
             line,
             HeadingKind.CHAPTER,
             text or candidate.title,
-            candidate.number,
+            number,
             candidate.family,
             candidate.confidence,
             dict(candidate.detail),
