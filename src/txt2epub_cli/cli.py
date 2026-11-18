@@ -1,3 +1,4 @@
+# PYTHON_ARGCOMPLETE_OK
 """Command-line interface for txt2epub."""
 
 from __future__ import annotations
@@ -7,6 +8,8 @@ import json
 import sys
 from dataclasses import replace
 from pathlib import Path
+
+import argcomplete
 
 from txt2epub_cli import __version__
 from txt2epub_cli.model import ParseResult
@@ -347,6 +350,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
+    argcomplete.autocomplete(parser)
     args = parser.parse_args(argv)
     if args.command == "inspect":
         return _cmd_inspect(args)

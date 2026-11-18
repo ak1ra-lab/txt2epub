@@ -1,3 +1,4 @@
+# PYTHON_ARGCOMPLETE_OK
 from __future__ import annotations
 
 from txt2epub_cli.cli import main
