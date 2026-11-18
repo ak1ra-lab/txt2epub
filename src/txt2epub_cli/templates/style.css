@@ -5,7 +5,7 @@ body {
 }
 
 p {
-  text-indent: 2em;
+  text-indent: $indent;
   margin: 0;
 }
 

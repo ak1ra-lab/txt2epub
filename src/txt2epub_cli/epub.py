@@ -87,9 +87,16 @@ def _attr(value: str) -> str:
 
 
 def _paragraph_texts(lines: list[SourceLine]) -> list[str]:
-    """Return non-blank body lines, preserving their original indentation."""
+    """Return non-blank body lines with leading/trailing whitespace removed.
 
-    return [line.text for line in lines if line.text.strip()]
+    Chinese TXT files usually indent every paragraph with two U+3000 spaces.
+    Carrying those literal spaces into EPUB on top of CSS ``text-indent``
+    doubles the indent (and a tab can be much wider), so the source indent is
+    treated as layout metadata and dropped here.
+    """
+
+    paragraphs = [line.text.strip() for line in lines]
+    return [paragraph for paragraph in paragraphs if paragraph]
 
 
 def _split_paragraphs(paragraphs: list[str], limit: int) -> list[list[str]]:
@@ -286,12 +293,24 @@ def _render_spine(pages: list[_NodePage]) -> str:
 
 
 def write_epub(
-    result: ParseResult, output: Path, *, split_size: int = 256 * 1024
+    result: ParseResult,
+    output: Path,
+    *,
+    split_size: int = 256 * 1024,
+    indent_em: float = 2.0,
+    custom_css: str | None = None,
 ) -> Path:
-    """Write *result* as an EPUB 3 file at *output* and return the output path."""
+    """Write *result* as an EPUB 3 file at *output* and return the output path.
+
+    Body indentation comes from CSS rather than literal leading spaces.
+    ``indent_em=0`` disables first-line indent; ``custom_css`` replaces the
+    built-in stylesheet entirely.
+    """
 
     if split_size <= 0:
         raise ValueError("split_size must be positive")
+    if indent_em < 0:
+        raise ValueError("indent_em must be non-negative")
 
     output = Path(output)
     book = result.book
@@ -342,7 +361,11 @@ def write_epub(
         depth=str(_nav_depth(result.roots, include_front)),
         nav_points=_render_ncx_nav_points(result, by_node, include_front),
     )
-    style = _template("style.css").substitute()
+    if custom_css is not None:
+        style = custom_css
+    else:
+        indent = "0" if indent_em == 0 else f"{indent_em:g}em"
+        style = _template("style.css").substitute(indent=indent)
 
     output.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as archive:
@@ -379,8 +402,19 @@ def write_epub(
 
 
 def build_epub(
-    result: ParseResult, output: Path, *, split_size: int = 256 * 1024
+    result: ParseResult,
+    output: Path,
+    *,
+    split_size: int = 256 * 1024,
+    indent_em: float = 2.0,
+    custom_css: str | None = None,
 ) -> Path:
     """Alias for :func:`write_epub`."""
 
-    return write_epub(result, output, split_size=split_size)
+    return write_epub(
+        result,
+        output,
+        split_size=split_size,
+        indent_em=indent_em,
+        custom_css=custom_css,
+    )

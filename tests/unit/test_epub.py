@@ -317,7 +317,7 @@ def test_nav_nesting_and_parent_pages(tmp_path: Path) -> None:
         parent_page = _parse(archive, "OEBPS/text/part-0001.xhtml")
         assert parent_page.findtext(f".//{XHTML}h1") == "第一卷"
         paragraphs = parent_page.findall(f".//{XHTML}p")
-        assert [paragraph.text for paragraph in paragraphs] == ["\u3000卷首正文"]
+        assert [paragraph.text for paragraph in paragraphs] == ["卷首正文"]
 
         chapter_page = _parse(archive, "OEBPS/text/chapter-0001.xhtml")
         assert chapter_page.findtext(f".//{XHTML}h2") == "第一章"
@@ -373,7 +373,7 @@ def test_xml_escaping(tmp_path: Path) -> None:
         assert page.findtext(f".//{XHTML}title") == title
         assert page.findtext(f".//{XHTML}h1") == title
         paragraphs = page.findall(f".//{XHTML}p")
-        assert [paragraph.text for paragraph in paragraphs] == [body]
+        assert [paragraph.text for paragraph in paragraphs] == [body.strip()]
 
 
 def test_large_node_splits_at_paragraph_boundaries(tmp_path: Path) -> None:
@@ -449,7 +449,7 @@ def test_oversized_paragraph_is_kept_whole(tmp_path: Path) -> None:
 
         page = _parse(archive, "OEBPS/text/chapter-0001.xhtml")
         paragraphs = page.findall(f".//{XHTML}p")
-        assert [paragraph.text for paragraph in paragraphs] == [body]
+        assert [paragraph.text for paragraph in paragraphs] == [body.strip()]
 
 
 @pytest.mark.parametrize(
@@ -546,3 +546,36 @@ def test_invalid_xml_control_characters_are_removed(tmp_path: Path) -> None:
         assert "\x0b" not in payload
         ET.fromstring(payload)
         assert "正文内容" in payload
+
+
+def test_body_indent_comes_from_css_not_literal_spaces(tmp_path: Path) -> None:
+    chapter = _node(
+        _heading("chapter-1", HeadingKind.CHAPTER, "第一章"),
+        body=[_source_line(2, "\u3000\u3000正文段落\t")],
+    )
+    output = tmp_path / "book.epub"
+    write_epub(_result([chapter]), output)
+
+    with zipfile.ZipFile(output) as archive:
+        page = _parse(archive, "OEBPS/text/chapter-0001.xhtml")
+        paragraphs = page.findall(f".//{XHTML}p")
+        assert [paragraph.text for paragraph in paragraphs] == ["正文段落"]
+        style = archive.read("OEBPS/style.css").decode("utf-8")
+        assert "text-indent: 2em" in style
+
+
+def test_no_indent_and_custom_css(tmp_path: Path) -> None:
+    chapter = _node(
+        _heading("chapter-1", HeadingKind.CHAPTER, "第一章"),
+        body=[_source_line(2, "\u3000\u3000正文段落")],
+    )
+    no_indent = tmp_path / "no-indent.epub"
+    write_epub(_result([chapter]), no_indent, indent_em=0)
+    with zipfile.ZipFile(no_indent) as archive:
+        assert "text-indent: 0" in archive.read("OEBPS/style.css").decode("utf-8")
+
+    custom = tmp_path / "custom.epub"
+    css = "p { text-indent: 0; font-size: 1.2em; }"
+    write_epub(_result([chapter]), custom, custom_css=css)
+    with zipfile.ZipFile(custom) as archive:
+        assert archive.read("OEBPS/style.css").decode("utf-8") == css

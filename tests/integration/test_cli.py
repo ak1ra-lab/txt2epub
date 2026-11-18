@@ -141,3 +141,20 @@ def test_cli_inspect_issue_filters(tmp_path: Path):
     only = run_cli("inspect", str(path), "--only-issue", "number_gap")
     assert only.returncode == 0, only.stderr
     assert "number_gap" in only.stdout
+
+
+def test_cli_convert_no_indent_css(tmp_path: Path):
+    result = run_cli(
+        "convert",
+        str(FIXTURES / "simple_arabic.txt"),
+        "-o",
+        str(tmp_path),
+        "--no-indent",
+        "--yes",
+    )
+    assert result.returncode == 0, result.stderr
+    import zipfile
+
+    with zipfile.ZipFile(tmp_path / "simple_arabic.epub") as archive:
+        css = archive.read("OEBPS/style.css").decode("utf-8")
+        assert "text-indent: 0" in css

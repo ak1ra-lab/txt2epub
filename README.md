@@ -95,10 +95,26 @@ txt2epub convert *.txt -o out/ --report out/report.json
 
 # overwrite existing outputs non-interactively
 txt2epub convert *.txt -o out/ --yes
+
+# no first-line indent (indentation is CSS-driven, not literal spaces)
+txt2epub convert book.txt --no-indent
+
+# custom first-line indent in em
+txt2epub convert book.txt --indent-em 1.5
+
+# replace the built-in stylesheet entirely
+txt2epub convert book.txt --css my-style.css
 ```
 
 When an output file already exists, interactive runs ask before overwriting.
 Use `--force` or `--yes` in scripts.
+
+Body paragraphs are stripped of their source leading/trailing spaces and tabs
+before being written to XHTML.  Indentation is controlled by the EPUB stylesheet
+instead, so a source line beginning with two U+3000 spaces does not become a
+double indent on Kindle.  The default stylesheet uses `text-indent: 2em`.
+`--no-indent` writes `text-indent: 0`; `--css` replaces the stylesheet and takes
+precedence over `--indent-em`.
 
 ### Exit codes
 
@@ -222,7 +238,7 @@ TXT2EPUB_LOCAL_SAMPLES=1 uv run pytest -m local
 ```
 
 Committed tests use synthetic placeholder fixtures only. Local samples under
-`examples/txt/` are never committed.
+`examples/txt/` (or `examples/txt/`) are never committed.
 
 ## Known limitations
 

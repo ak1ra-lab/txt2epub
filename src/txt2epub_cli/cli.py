@@ -129,6 +129,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="split chapters larger than this many UTF-8 bytes (default: 262144)",
     )
     convert.add_argument(
+        "--indent-em",
+        type=float,
+        default=2.0,
+        metavar="EM",
+        help="CSS first-line indent for body paragraphs (default: 2em; 0 disables)",
+    )
+    convert.add_argument(
+        "--no-indent",
+        action="store_true",
+        help="shortcut for --indent-em 0 (no first-line indent)",
+    )
+    convert.add_argument(
+        "--css",
+        type=Path,
+        help="replace the built-in stylesheet with this CSS file",
+    )
+    convert.add_argument(
         "--verbose", action="store_true", help="show tracebacks on failure"
     )
     return parser
@@ -221,6 +238,17 @@ def _confirm_overwrite(output: Path, args: argparse.Namespace) -> bool:
 
 def _cmd_convert(args: argparse.Namespace) -> int:
     _load_rules_or_exit(args)
+    if args.indent_em < 0:
+        print("txt2epub: --indent-em must be non-negative", file=sys.stderr)
+        return 3
+    indent_em = 0.0 if args.no_indent else args.indent_em
+    custom_css: str | None = None
+    if args.css is not None:
+        try:
+            custom_css = args.css.read_text(encoding="utf-8-sig")
+        except OSError as exc:
+            print(f"txt2epub: cannot read CSS file {args.css}: {exc}", file=sys.stderr)
+            return 3
     reports: list[dict] = []
     successes = 0
     failures = 0
@@ -268,7 +296,13 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             from txt2epub_cli.epub import write_epub
 
             output.parent.mkdir(parents=True, exist_ok=True)
-            write_epub(result, output, split_size=args.split_size)
+            write_epub(
+                result,
+                output,
+                split_size=args.split_size,
+                indent_em=indent_em,
+                custom_css=custom_css,
+            )
         except Exception as exc:  # noqa: BLE001 - CLI boundary
             failures += 1
             print(f"FAIL {path}: {exc}", file=sys.stderr)
