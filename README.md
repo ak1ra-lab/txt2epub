@@ -8,6 +8,14 @@ gets a disposition in a line ledger, and conversion refuses to write an EPUB
 unless the source/output/dropped text multiset balances (unless you explicitly
 pass `--allow-loss`).
 
+> **Status:** pre-release. The distribution is named `txt2epub-cli`; it is not
+> published on PyPI yet. Install from source as shown below; use a virtualenv or
+> `uv tool install .` to keep the CLI isolated.
+>
+> **Package naming:** the CLI command is `txt2epub` and the import package is
+> `txt2epub_cli`. The separate import name avoids clashing with the unrelated
+> PyPI package `txt2epub` in `site-packages`.
+
 ## Features
 
 - Detects UTF-8 / UTF-8 BOM / UTF-16 / GB18030 / Big5 input, CRLF or LF.
@@ -31,16 +39,28 @@ pass `--allow-loss`).
 Requires Python 3.11+.
 
 ```bash
+git clone git@github.com:ak1ra-lab/txt2epub.git
+cd txt2epub
+
 # with uv (recommended for development)
-uv sync
+uv sync --group dev
 uv run txt2epub --help
 
-# or install into the current environment
+# or install the working tree into the current environment
 pip install -e .
+txt2epub --help
+
+# or install as an isolated uv tool
+uv tool install .
 txt2epub --help
 ```
 
-`python -m txt2epub_cli ...` works as well.
+`python -m txt2epub_cli ...` works as well. Shell completion is provided by
+`argcomplete`:
+
+```bash
+eval "$(register-python-argcomplete txt2epub)"
+```
 
 ## Usage
 
@@ -226,19 +246,38 @@ Volume/special parent nodes always get a real XHTML page, so every nav/NCX
 entry has a valid link. Chapters larger than `--split-size` (default 256 KiB)
 are split at paragraph boundaries; only the first fragment appears in the TOC.
 
+## Documentation
+
+User documentation lives in `docs/` and is written in English and Simplified
+Chinese (`*.md` plus `*.zh.md`). Build it locally with:
+
+```bash
+just docs-build
+just docs-serve
+```
+
 ## Development
 
 ```bash
-uv run ruff format --check .
-uv run ruff check .
-uv run pytest
+uv sync --group dev
+uv run pre-commit install
+
+just lint
+just typecheck
+just test
+just coverage
+just build
 
 # optional local sample smoke (samples are gitignored)
 TXT2EPUB_LOCAL_SAMPLES=1 uv run pytest -m local
 ```
 
 Committed tests use synthetic placeholder fixtures only. Local samples under
-`examples/txt/` (or `examples/txt/`) are never committed.
+`examples/txt/` or `examples/epub/` are never committed.
+
+The project was scaffolded from `copier-pyproject`; `.copier-answers.yml`
+records the template revision and the distribution, command, and import names
+separately. Verify a `copier update` with `--pretend` before applying it.
 
 ## Known limitations
 

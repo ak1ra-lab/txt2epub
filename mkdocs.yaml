@@ -1,0 +1,54 @@
+---
+site_name: "txt2epub"
+site_description: "Auditable Chinese TXT to EPUB 3 converter with multi-level TOC"
+site_url: ""
+site_author: "ak1ra"
+copyright: "Copyright \u0026copy; 2026 ak1ra"
+repo_url: "https://github.com/ak1ra-lab/txt2epub"
+repo_name: "ak1ra-lab/txt2epub"
+docs_dir: docs
+site_dir: site
+dev_addr: 0.0.0.0:8000
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+
+theme:
+  name: material
+  language: en
+  features:
+    - content.code.copy
+    - navigation.footer
+    - navigation.sections
+    - navigation.top
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.superfences
+  - md_in_html
+  - toc:
+      permalink: true
+
+plugins:
+  - i18n:
+      docs_structure: suffix
+      reconfigure_material: true
+      languages:
+        - locale: en
+          name: English
+          default: true
+          build: true
+        - locale: zh
+          name: 简体中文
+          build: true
+          theme:
+            language: zh
+          nav_translations:
+            Home: 首页
+            Getting Started: 入门指南
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
