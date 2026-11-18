@@ -1,0 +1,59 @@
+---
+default:
+  # uv's rolling Debian image; this pin is uv 0.13.9 on Debian trixie slim.
+  # Python is installed on demand by uv through UV_PYTHON.
+  image: ghcr.io/astral-sh/uv:0.13.9-trixie-slim
+  interruptible: true
+  cache:
+    key:
+      files:
+        - uv.lock
+    paths:
+      - .uv-cache
+  before_script:
+    - uv sync --locked --group dev
+
+variables:
+  UV_CACHE_DIR: "$CI_PROJECT_DIR/.uv-cache"
+  UV_PYTHON: "3.13"
+  GIT_DEPTH: "0"
+
+stages:
+  - lint
+  - test
+  - build
+
+lint:
+  stage: lint
+  script:
+    - uv run ruff check src tests
+    - uv run ruff format --check src tests
+    - uv run ty check src
+
+test:
+  stage: test
+  parallel:
+    matrix:
+      - PYTHON: ["3.11", "3.12", "3.13", "3.14"]
+  variables:
+    UV_PYTHON: "$PYTHON"
+  script:
+    - uv run pytest -v tests
+
+build:
+  stage: build
+  script:
+    - uv build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+docs:
+  stage: build
+  script:
+    - NO_MKDOCS_2_WARNING=1 uv run mkdocs build
+  artifacts:
+    paths:
+      - site/
+    expire_in: 1 week
