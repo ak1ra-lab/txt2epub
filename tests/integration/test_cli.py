@@ -121,3 +121,23 @@ def test_convert_refuses_coverage_loss_unless_allowed(monkeypatch, tmp_path: Pat
     )
     assert code == 0
     assert output.exists()
+
+
+def test_cli_inspect_issue_filters(tmp_path: Path):
+    path = tmp_path / "gaps.txt"
+    path.write_text(
+        "第1章 占位标题\n　　正文。\n第5章 占位标题\n　　正文。\n",
+        encoding="utf-8",
+    )
+
+    verbose = run_cli("inspect", str(path), "--verbose")
+    assert verbose.returncode == 0, verbose.stderr
+    assert "number_gap" in verbose.stdout
+
+    ignored = run_cli("inspect", str(path), "--verbose", "--ignore-issue", "number_gap")
+    assert ignored.returncode == 0, ignored.stderr
+    assert "number_gap" not in ignored.stdout
+
+    only = run_cli("inspect", str(path), "--only-issue", "number_gap")
+    assert only.returncode == 0, only.stderr
+    assert "number_gap" in only.stdout

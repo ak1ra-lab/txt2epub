@@ -129,6 +129,7 @@ class Stats:
     specials: int = 0
     noise: int = 0
     duplicates: int = 0
+    indented_duplicates: int = 0
     toc_pages: int = 0
     front_matter_lines: int = 0
     front_matter_chars: int = 0

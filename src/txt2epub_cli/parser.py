@@ -489,8 +489,8 @@ class _Parser:
                 self.ledger.mark(line.line_no, Disposition.DUPLICATE, reason)
                 self.issues.append(
                     Issue(
-                        severity="warning",
-                        code="duplicate_number",
+                        severity="info",
+                        code="duplicate_indented",
                         line_no=line.line_no,
                         message=(
                             f"indented chapter {candidate.number!r} already exists at "
@@ -749,10 +749,16 @@ class _Parser:
         stats.noise = sum(
             1 for line in self.lines if line.disposition is Disposition.NOISE
         )
-        stats.duplicates = sum(
-            1
-            for i in self.issues
-            if i.code in ("duplicate_number", "duplicate_number_same_title")
+        stats.indented_duplicates = sum(
+            1 for i in self.issues if i.code == "duplicate_indented"
+        )
+        stats.duplicates = (
+            sum(
+                1
+                for i in self.issues
+                if i.code in ("duplicate_number", "duplicate_number_same_title")
+            )
+            + stats.indented_duplicates
         )
         stats.toc_pages = len(self.toc_lines)
         stats.front_matter_lines = len(book.front_matter)

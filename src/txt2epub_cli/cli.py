@@ -79,6 +79,20 @@ def build_parser() -> argparse.ArgumentParser:
     inspect.add_argument(
         "--verbose", action="store_true", help="show all suspicious issues"
     )
+    inspect.add_argument(
+        "--ignore-issue",
+        action="append",
+        default=[],
+        metavar="CODE",
+        help="hide an issue code from the human suspicious list (repeat or comma-separate)",
+    )
+    inspect.add_argument(
+        "--only-issue",
+        action="append",
+        default=[],
+        metavar="CODE",
+        help="show only these issue codes in the human suspicious list",
+    )
 
     convert = subcommands.add_parser(
         "convert", help="convert one or more TXT files to EPUB"
@@ -118,6 +132,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose", action="store_true", help="show tracebacks on failure"
     )
     return parser
+
+
+def _issue_codes(values: list[str] | None) -> set[str]:
+    codes: set[str] = set()
+    for value in values or []:
+        codes.update(part.strip() for part in value.split(",") if part.strip())
+    return codes
 
 
 def _load_rules_or_exit(args: argparse.Namespace):
@@ -168,10 +189,19 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         return exit_code
 
     limit = 1000 if args.verbose else args.limit
+    ignore_codes = _issue_codes(args.ignore_issue)
+    only_codes = _issue_codes(args.only_issue)
     for index, result in enumerate(results):
         if index:
             print()
-        print(report_human(result, limit=limit))
+        print(
+            report_human(
+                result,
+                limit=limit,
+                ignore_codes=ignore_codes,
+                only_codes=only_codes,
+            )
+        )
     return exit_code
 
 

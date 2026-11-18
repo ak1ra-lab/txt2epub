@@ -56,6 +56,28 @@ Human output includes encoding, line/char counts, front matter, heading counts,
 first/last heading, issue summary, coverage, and a short suspicious list.
 Add `--verbose` to show all warnings, or `--limit 0` to hide the list.
 
+Some books have genuine source-level numbering gaps, or many expected
+indented duplicate headings.  Focus the human list without changing the JSON
+report:
+
+```bash
+# hide known source numbering gaps
+txt2epub inspect book.txt --verbose --ignore-issue number_gap
+
+# hide several codes (repeat the option or use commas)
+txt2epub inspect book.txt --verbose \
+  --ignore-issue number_gap,duplicate_number
+
+# show only conflicts and gaps
+txt2epub inspect book.txt --only-issue number_conflict,number_gap
+
+# indented duplicate headings are severity=info; show them explicitly
+txt2epub inspect book.txt --only-issue duplicate_indented
+```
+
+`--ignore-issue` / `--only-issue` affect only the human suspicious list;
+`--json` always contains the complete issue list.
+
 ### Convert one or many files
 
 ```bash
@@ -155,6 +177,10 @@ By default, duplicate chapter numbers are **reported, not renumbered**. If two
 headings have the same number and same title, the later heading is merged into
 the first occurrence and its body is preserved. Same number + different title is
 reported as `number_conflict` and both chapters are kept.
+
+Indented duplicate headings that merely echo an existing column-zero chapter
+(e.g. a repeated title with a site suffix) are recorded as
+`duplicate_indented` with severity `info`; they do not flood the warning list.
 
 Optional content dedupe:
 

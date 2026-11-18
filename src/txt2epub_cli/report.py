@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 from txt2epub_cli.model import Issue, ParseResult
@@ -57,6 +58,7 @@ def report_dict(result: ParseResult, output: Path | None = None) -> dict:
             "specials": stats.specials,
             "noise": stats.noise,
             "duplicates": stats.duplicates,
+            "indented_duplicates": stats.indented_duplicates,
             "toc_pages": stats.toc_pages,
             "front_matter_lines": stats.front_matter_lines,
             "number_styles": stats.number_styles,
@@ -90,7 +92,12 @@ def report_json(result: ParseResult, output: Path | None = None) -> str:
 
 
 def report_human(
-    result: ParseResult, *, limit: int = 10, output: Path | None = None
+    result: ParseResult,
+    *,
+    limit: int = 10,
+    output: Path | None = None,
+    ignore_codes: set[str] | None = None,
+    only_codes: set[str] | None = None,
 ) -> str:
     stats = result.stats
     coverage = result.coverage
@@ -125,9 +132,10 @@ def report_human(
         last = stats.last_heading
         lines.append(f"Last:       [{last.line_no}] {last.title}")
     lines.append(
-        f"Issues:     {stats.duplicate_numbers:,} duplicate numbers, "
-        f"{stats.number_conflicts:,} conflicts, {stats.noise:,} noise lines, "
-        f"{stats.toc_pages:,} toc lines"
+        f"Issues:     {stats.duplicate_numbers:,} duplicate chapters, "
+        f"{stats.indented_duplicates:,} indented duplicates, "
+        f"{stats.number_conflicts:,} conflicts, {stats.number_gaps:,} gaps, "
+        f"{stats.noise:,} noise lines, {stats.toc_pages:,} toc lines"
     )
     percent = 100.0 * (1.0 - coverage.loss_ratio) if coverage.source_chars else 100.0
     lines.append(
@@ -138,12 +146,20 @@ def report_human(
     if output is not None:
         lines.append(f"Output:     {output}")
 
-    warnings = [
-        issue for issue in result.issues if issue.severity in ("warning", "error")
-    ]
+    if only_codes:
+        warnings = [issue for issue in result.issues if issue.code in only_codes]
+    else:
+        warnings = [
+            issue for issue in result.issues if issue.severity in ("warning", "error")
+        ]
+    if ignore_codes:
+        warnings = [issue for issue in warnings if issue.code not in ignore_codes]
+
     if warnings and limit > 0:
+        by_code = Counter(issue.code for issue in warnings)
+        summary = ", ".join(f"{code}={count}" for code, count in by_code.most_common())
         lines.append("")
-        lines.append("Suspicious:")
+        lines.append(f"Suspicious: {summary}")
         for issue in warnings[:limit]:
             lines.append(
                 f"  [{issue.line_no}] {issue.severity}: {issue.code}: {issue.message}"

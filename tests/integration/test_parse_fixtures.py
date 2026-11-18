@@ -300,3 +300,13 @@ def test_section_hierarchy():
         "第2节 占位小节",
     ]
     assert result.coverage.ok
+
+
+def test_indented_duplicate_is_info_not_warning():
+    text = "第1章 占位标题\n　　正文。\n　　第一章 占位标题\n　　正文。\n"
+    result = parse_text(text)
+    assert result.stats.chapters == 1
+    assert result.stats.indented_duplicates == 1
+    issue = next(issue for issue in result.issues if issue.code == "duplicate_indented")
+    assert issue.severity == "info"
+    assert result.coverage.ok
