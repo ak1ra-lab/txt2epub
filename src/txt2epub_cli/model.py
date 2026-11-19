@@ -69,7 +69,6 @@ class Heading:
     line_no: int
     confidence: float
     family: str = ""
-    issues: list[Issue] = field(default_factory=list)
     # Extra structured information, e.g. combined volume prefix.
     detail: dict = field(default_factory=dict)
 
@@ -140,7 +139,6 @@ class Stats:
     number_conflicts: int = 0
     number_gaps: int = 0
     number_resets: int = 0
-    dispositions: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass

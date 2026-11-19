@@ -23,7 +23,3 @@ def noise_reason(line: SourceLine, rules: RuleSet) -> str | None:
         if pattern.search(text):
             return pattern.pattern
     return None
-
-
-def is_noise(line: SourceLine, rules: RuleSet) -> bool:
-    return noise_reason(line, rules) is not None

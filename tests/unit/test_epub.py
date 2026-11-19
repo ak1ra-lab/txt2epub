@@ -11,7 +11,7 @@ from xml.etree import ElementTree as ET
 
 import pytest
 
-from txt2epub_cli.epub import build_epub, write_epub
+from txt2epub_cli.epub import write_epub
 from txt2epub_cli.model import (
     Book,
     Coverage,
@@ -353,7 +353,7 @@ def test_xml_escaping(tmp_path: Path) -> None:
     result = _result([chapter], title=title)
     output = tmp_path / "book.epub"
 
-    written = build_epub(result, output)
+    written = write_epub(result, output)
 
     assert written == output
     with zipfile.ZipFile(output) as archive:

@@ -48,8 +48,6 @@ def assign_units(
                 line.disposition = Disposition.DUPLICATE
                 line.reason = line.reason or "heading_removed"
                 line.units = [line.normalized]
-        elif line.disposition in _DROPPED:
-            line.units = [line.normalized]
         else:
             line.units = [line.normalized]
 

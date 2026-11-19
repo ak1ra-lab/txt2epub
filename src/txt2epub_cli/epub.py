@@ -127,7 +127,7 @@ def _plan_pages(
     by_node: dict[int, _NodePage] = {}
 
     def visit(node: Node, depth: int) -> None:
-        family, prefix = _FAMILIES.get(node.heading.kind, ("section", "s"))
+        family, prefix = _FAMILIES[node.heading.kind]
         counters[family] += 1
         number = counters[family]
         stem = f"{family}-{number:04d}"
@@ -258,12 +258,11 @@ def _render_ncx_nav_points(
     return "\n".join(lines)
 
 
-def _nav_depth(roots: list[Node], include_front: bool) -> int:
+def _nav_depth(roots: list[Node]) -> int:
     def node_depth(node: Node) -> int:
         return 1 + max((node_depth(child) for child in node.children), default=0)
 
-    tree_depth = max((node_depth(root) for root in roots), default=0)
-    return max(1, tree_depth, 1 if include_front else 0)
+    return max(1, max((node_depth(root) for root in roots), default=0))
 
 
 def _render_manifest(pages: list[_NodePage]) -> str:
@@ -358,7 +357,7 @@ def write_epub(
         language=_xml_escape(language),
         identifier=_xml_escape(identifier),
         title=_xml_escape(book.title),
-        depth=str(_nav_depth(result.roots, include_front)),
+        depth=str(_nav_depth(result.roots)),
         nav_points=_render_ncx_nav_points(result, by_node, include_front),
     )
     if custom_css is not None:
@@ -399,22 +398,3 @@ def write_epub(
                     compress_type=zipfile.ZIP_DEFLATED,
                 )
     return output
-
-
-def build_epub(
-    result: ParseResult,
-    output: Path,
-    *,
-    split_size: int = 256 * 1024,
-    indent_em: float = 2.0,
-    custom_css: str | None = None,
-) -> Path:
-    """Alias for :func:`write_epub`."""
-
-    return write_epub(
-        result,
-        output,
-        split_size=split_size,
-        indent_em=indent_em,
-        custom_css=custom_css,
-    )

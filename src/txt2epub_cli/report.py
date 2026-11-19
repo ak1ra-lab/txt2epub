@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import json
 from collections import Counter
 from pathlib import Path
 
-from txt2epub_cli.model import Issue, ParseResult
+from txt2epub_cli.model import Heading, Issue, ParseResult
 
 
-def _heading_dict(heading) -> dict | None:
+def _heading_dict(heading: Heading | None) -> dict | None:
     if heading is None:
         return None
     return {
@@ -85,10 +84,6 @@ def report_dict(result: ParseResult, output: Path | None = None) -> dict:
     if output is not None:
         data["output"] = str(output)
     return data
-
-
-def report_json(result: ParseResult, output: Path | None = None) -> str:
-    return json.dumps(report_dict(result, output), ensure_ascii=False, indent=2)
 
 
 def report_human(

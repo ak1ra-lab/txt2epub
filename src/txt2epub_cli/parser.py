@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 from txt2epub_cli.candidates import Candidate, detect_candidate
@@ -50,7 +50,7 @@ def number_key(raw: str | None) -> str:
     return str(value) if value is not None else raw.strip()
 
 
-def _too_long(candidate: Candidate, rules: RuleSet) -> bool:
+def _too_long(candidate: Candidate) -> bool:
     return any(issue.code == _TOO_LONG for issue in candidate.issues)
 
 
@@ -68,7 +68,6 @@ class _Parser:
         keep_noise: bool,
         keep_toc: bool,
         dedupe: str,
-        allow_loss: bool,
     ) -> None:
         self.decoded = decoded
         self.source = source
@@ -76,12 +75,10 @@ class _Parser:
         self.keep_noise = keep_noise
         self.keep_toc = keep_toc
         self.dedupe_mode = dedupe
-        self.allow_loss = allow_loss
 
         self.lines = make_source_lines(decoded.text)
         self.ledger = LineLedger(self.lines)
-        self.line_index = {line.line_no: index for index, line in enumerate(self.lines)}
-        self.candidates: dict[int, Candidate | None] = {}
+        self.candidates: dict[int, Candidate] = {}
         self.issues: list[Issue] = []
         self.headings: list[Heading] = []
         self.heading_seq = 0
@@ -134,19 +131,18 @@ class _Parser:
         key = (self._container_key(), number_key(heading.number))
         self.registry[key].append(heading)
 
-    def _near_chapter(self, line_no: int, limit: int = 10) -> bool:
-        index = self.line_index[line_no]
+    def _near_chapter(self, line: SourceLine, limit: int = 10) -> bool:
         seen = 0
-        for line in self.lines[index + 1 :]:
-            if not line.stripped:
+        for following in self.lines[line.line_no :]:
+            if not following.stripped:
                 continue
             seen += 1
             if seen > limit:
                 return False
-            candidate = self.candidates.get(line.line_no)
+            candidate = self.candidates.get(following.line_no)
             if candidate is None:
                 continue
-            if _too_long(candidate, self.rules):
+            if _too_long(candidate):
                 continue
             if candidate.kind == HeadingKind.CHAPTER:
                 return True
@@ -169,14 +165,14 @@ class _Parser:
         for line in self.lines:
             if not line.stripped:
                 self.ledger.mark(line.line_no, Disposition.BLANK)
-
-        for line in self.lines:
-            if line.stripped:
-                self.candidates[line.line_no] = detect_candidate(line, self.rules)
+                continue
+            candidate = detect_candidate(line, self.rules)
+            if candidate is not None:
+                self.candidates[line.line_no] = candidate
 
         def is_heading_like(line: SourceLine) -> bool:
             candidate = self.candidates.get(line.line_no)
-            if candidate is None or _too_long(candidate, self.rules):
+            if candidate is None or _too_long(candidate):
                 return False
             return not (candidate.deferred and not self.rules.allow_indented_headings)
 
@@ -220,7 +216,7 @@ class _Parser:
             if line.disposition is not Disposition.UNKNOWN:
                 continue
             candidate = self.candidates.get(line.line_no)
-            if candidate is None or _too_long(candidate, self.rules):
+            if candidate is None or _too_long(candidate):
                 continue
             text = self._matched_text(line)
             if candidate.detail.get("combined"):
@@ -244,20 +240,19 @@ class _Parser:
                 self.column_zero_registry.setdefault(key, normalize_for_match(text))
                 self.has_column_zero_chapters = True
 
-    def _adjacent_heading(self, line_no: int) -> bool:
+    def _adjacent_heading(self, line: SourceLine) -> bool:
         """Return whether the nearest non-blank line on either side is a heading."""
 
-        index = self.line_index[line_no]
-        cursor = index - 1
+        cursor = line.line_no - 2
         while cursor >= 0:
-            line = self.lines[cursor]
-            if line.stripped:
-                if line.disposition is Disposition.HEADING:
+            previous = self.lines[cursor]
+            if previous.stripped:
+                if previous.disposition is Disposition.HEADING:
                     return True
-                candidate = self.candidates.get(line.line_no)
+                candidate = self.candidates.get(previous.line_no)
                 return bool(
                     candidate is not None
-                    and not _too_long(candidate, self.rules)
+                    and not _too_long(candidate)
                     and candidate.kind
                     in (HeadingKind.VOLUME, HeadingKind.CHAPTER, HeadingKind.SPECIAL)
                 )
@@ -320,9 +315,7 @@ class _Parser:
         # 序/章/篇 are strong section markers (e.g. 魔序, 卷首序) and may be
         # followed by body text.  传/记/录 are weaker and only split when a
         # chapter follows, to avoid eating ordinary volume names.
-        if suffix[-1] not in {"序", "章", "篇"} and not self._near_chapter(
-            line.line_no
-        ):
+        if suffix[-1] not in {"序", "章", "篇"} and not self._near_chapter(line):
             return text, None
         position = text.rfind(suffix)
         volume_title = text[:position].strip() if position > 0 else text
@@ -451,7 +444,7 @@ class _Parser:
         text = self._matched_text(line)
         if candidate.kind == HeadingKind.VOLUME:
             short_enough = len(text) <= self.rules.max_indented_volume_length
-            if not (short_enough and self._near_chapter(line.line_no)):
+            if not (short_enough and self._near_chapter(line)):
                 self.ledger.mark(
                     line.line_no, Disposition.BODY, "indented_volume_rejected"
                 )
@@ -499,9 +492,7 @@ class _Parser:
                     )
                 )
                 return True
-            if self.has_column_zero_chapters and not self._adjacent_heading(
-                line.line_no
-            ):
+            if self.has_column_zero_chapters and not self._adjacent_heading(line):
                 # In mixed-format books, a lone indented "第X章..." sentence in
                 # the middle of a paragraph is almost always narrative text.
                 self.ledger.mark(line.line_no, Disposition.BODY, "indented_unconfirmed")
@@ -518,12 +509,24 @@ class _Parser:
                 return True
         return False
 
+    def _record_noise(self, line: SourceLine, reason: str, message: str) -> None:
+        self.ledger.mark(line.line_no, Disposition.NOISE, f"noise:{reason}")
+        self.issues.append(
+            Issue(
+                severity="info",
+                code="noise_removed",
+                line_no=line.line_no,
+                message=message,
+                detail={"pattern": reason},
+            )
+        )
+
     def _run_acceptance(self) -> None:
         for line in self.lines:
             if line.disposition is not Disposition.UNKNOWN:
                 continue
             candidate = self.candidates.get(line.line_no)
-            if candidate is not None and _too_long(candidate, self.rules):
+            if candidate is not None and _too_long(candidate):
                 self.ledger.mark(line.line_no, Disposition.BODY, "too_long")
                 self.issues.append(
                     Issue(
@@ -538,36 +541,18 @@ class _Parser:
             if candidate is None:
                 reason = noise_reason(line, self.rules)
                 if reason is not None and not self.keep_noise:
-                    self.ledger.mark(line.line_no, Disposition.NOISE, f"noise:{reason}")
-                    self.issues.append(
-                        Issue(
-                            severity="info",
-                            code="noise_removed",
-                            line_no=line.line_no,
-                            message="short site noise line removed",
-                            detail={"pattern": reason},
-                        )
-                    )
+                    self._record_noise(line, reason, "short site noise line removed")
                 continue
 
             if candidate.deferred:
                 reason = noise_reason(line, self.rules)
                 if reason is not None:
-                    if not self.keep_noise:
-                        self.ledger.mark(
-                            line.line_no, Disposition.NOISE, f"noise:{reason}"
+                    if self.keep_noise:
+                        self.ledger.mark(line.line_no, Disposition.BODY, "noise_kept")
+                    else:
+                        self._record_noise(
+                            line, reason, "noisy indented heading candidate removed"
                         )
-                        self.issues.append(
-                            Issue(
-                                severity="info",
-                                code="noise_removed",
-                                line_no=line.line_no,
-                                message="noisy indented heading candidate removed",
-                                detail={"pattern": reason},
-                            )
-                        )
-                        continue
-                    self.ledger.mark(line.line_no, Disposition.BODY, "noise_kept")
                     continue
                 if self._reject_indented(candidate, line):
                     continue
@@ -603,7 +588,7 @@ class _Parser:
                 self.first_heading_line = line.line_no
 
     # --------------------------------------------------------------- body / tree
-    def _attach_bodies(self, roots: list[Node], line_targets: dict[int, Node]) -> Book:
+    def _attach_bodies(self, line_targets: dict[int, Node]) -> Book:
         book = Book(source=self.source, title=self.source.stem)
         target: Node | None = None
         for line in self.lines:
@@ -644,8 +629,6 @@ class _Parser:
                 )
                 book.front_matter.append(line)
 
-        # Nodes that are detached during dedupe should not leave stale targets.
-        _ = roots
         return book
 
     # ------------------------------------------------------------------ metadata
@@ -719,12 +702,11 @@ class _Parser:
 
     # ------------------------------------------------------------------ finalize
     def _finalize(self, roots: list[Node], book: Book) -> ParseResult:
+        line_heading_counts = Counter(heading.line_no for heading in self.headings)
         multi_heading_lines = {
-            heading.line_no
-            for heading in self.headings
-            if sum(1 for other in self.headings if other.line_no == heading.line_no) > 1
+            line_no for line_no, count in line_heading_counts.items() if count > 1
         }
-        dedupe_counts = dedupe_numbers(
+        dedupe_numbers(
             roots,
             self.lines,
             self.issues,
@@ -741,50 +723,34 @@ class _Parser:
 
         present = flatten(roots)
         headings = [node.heading for node in present]
+        kind_counts = Counter(heading.kind for heading in headings)
+        issue_counts = Counter(issue.code for issue in self.issues)
+        disposition_counts = self.ledger.counts()
+
         stats = self.stats
-        stats.volumes = sum(1 for h in headings if h.kind == HeadingKind.VOLUME)
-        stats.chapters = sum(1 for h in headings if h.kind == HeadingKind.CHAPTER)
-        stats.sections = sum(1 for h in headings if h.kind == HeadingKind.SECTION)
-        stats.specials = sum(1 for h in headings if h.kind == HeadingKind.SPECIAL)
-        stats.noise = sum(
-            1 for line in self.lines if line.disposition is Disposition.NOISE
-        )
-        stats.indented_duplicates = sum(
-            1 for i in self.issues if i.code == "duplicate_indented"
-        )
-        stats.duplicates = (
-            sum(
-                1
-                for i in self.issues
-                if i.code in ("duplicate_number", "duplicate_number_same_title")
-            )
-            + stats.indented_duplicates
-        )
+        stats.volumes = kind_counts[HeadingKind.VOLUME]
+        stats.chapters = kind_counts[HeadingKind.CHAPTER]
+        stats.sections = kind_counts[HeadingKind.SECTION]
+        stats.specials = kind_counts[HeadingKind.SPECIAL]
+        stats.noise = disposition_counts.get(Disposition.NOISE, 0)
+        stats.indented_duplicates = issue_counts["duplicate_indented"]
+        stats.duplicates = issue_counts["duplicate_number"] + stats.indented_duplicates
         stats.toc_pages = len(self.toc_lines)
         stats.front_matter_lines = len(book.front_matter)
         stats.front_matter_chars = sum(len(line.text) for line in book.front_matter)
         stats.first_heading = headings[0] if headings else None
         stats.last_heading = headings[-1] if headings else None
-        stats.number_styles = {}
-        for heading in headings:
-            if heading.kind == HeadingKind.CHAPTER:
-                style = number_style(heading.number)
-                stats.number_styles[style] = stats.number_styles.get(style, 0) + 1
-        stats.duplicate_numbers = sum(
-            1
-            for i in self.issues
-            if i.code in ("duplicate_number", "duplicate_number_same_title")
+        stats.number_styles = dict(
+            Counter(
+                number_style(heading.number)
+                for heading in headings
+                if heading.kind is HeadingKind.CHAPTER
+            )
         )
-        stats.number_conflicts = sum(
-            1 for i in self.issues if i.code == "number_conflict"
-        )
+        stats.duplicate_numbers = issue_counts["duplicate_number"]
+        stats.number_conflicts = issue_counts["number_conflict"]
         stats.number_gaps = sequence_counts["gaps"]
         stats.number_resets = sequence_counts["resets"]
-        stats.dispositions = {
-            str(disposition): count
-            for disposition, count in self.ledger.counts().items()
-        }
-        _ = dedupe_counts
 
         self.issues.sort(key=lambda issue: issue.line_no)
         coverage = compute_coverage(book, roots, self.lines, self.headings)
@@ -822,7 +788,7 @@ class _Parser:
         self._prepare()
         self._run_acceptance()
         roots, line_targets = build_tree(self.headings)
-        book = self._attach_bodies(roots, line_targets)
+        book = self._attach_bodies(line_targets)
         self._metadata(book)
         return self._finalize(roots, book)
 
@@ -837,7 +803,6 @@ def parse_bytes(
     keep_noise: bool = False,
     keep_toc: bool = False,
     dedupe: str = "off",
-    allow_loss: bool = False,
 ) -> ParseResult:
     decoded = decode_bytes(data, forced_encoding=forced_encoding)
     return _Parser(
@@ -847,7 +812,6 @@ def parse_bytes(
         keep_noise=keep_noise,
         keep_toc=keep_toc,
         dedupe=dedupe,
-        allow_loss=allow_loss,
     ).run()
 
 
@@ -860,7 +824,6 @@ def parse_text(
     keep_noise: bool = False,
     keep_toc: bool = False,
     dedupe: str = "off",
-    allow_loss: bool = False,
 ) -> ParseResult:
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
     decoded = DecodedText(
@@ -877,7 +840,6 @@ def parse_text(
         keep_noise=keep_noise,
         keep_toc=keep_toc,
         dedupe=dedupe,
-        allow_loss=allow_loss,
     ).run()
 
 
@@ -889,7 +851,6 @@ def parse_file(
     keep_noise: bool = False,
     keep_toc: bool = False,
     dedupe: str = "off",
-    allow_loss: bool = False,
 ) -> ParseResult:
     decoded = read_text_file(path, forced_encoding=forced_encoding)
     return _Parser(
@@ -899,5 +860,4 @@ def parse_file(
         keep_noise=keep_noise,
         keep_toc=keep_toc,
         dedupe=dedupe,
-        allow_loss=allow_loss,
     ).run()

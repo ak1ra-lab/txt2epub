@@ -6,28 +6,27 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from dataclasses import replace
 from pathlib import Path
 
 import argcomplete
 
 from txt2epub_cli import __version__
+from txt2epub_cli.epub import write_epub
 from txt2epub_cli.model import ParseResult
 from txt2epub_cli.parser import parse_file
 from txt2epub_cli.report import report_dict, report_human
-from txt2epub_cli.rules import builtin_ruleset, load_rules
+from txt2epub_cli.rules import RuleSet, make_ruleset
 
 PROFILES = ("auto", "zxs", "strict", "loose")
 DEDUPE_MODES = ("off", "exact", "similar")
 
 
-def _rules_from_args(args: argparse.Namespace):
-    rules = builtin_ruleset(args.profile)
-    if args.rules is not None:
-        rules = load_rules(args.rules, base=rules)
-    if args.max_heading_length is not None:
-        rules = replace(rules, max_heading_length=args.max_heading_length)
-    return rules
+def _rules_from_args(args: argparse.Namespace) -> RuleSet:
+    return make_ruleset(
+        profile=args.profile,
+        rules_file=args.rules,
+        max_heading_length=args.max_heading_length,
+    )
 
 
 def _add_common(parser: argparse.ArgumentParser) -> None:
@@ -161,7 +160,7 @@ def _issue_codes(values: list[str] | None) -> set[str]:
     return codes
 
 
-def _load_rules_or_exit(args: argparse.Namespace):
+def _load_rules_or_exit(args: argparse.Namespace) -> RuleSet:
     try:
         return _rules_from_args(args)
     except (OSError, ValueError) as exc:
@@ -169,8 +168,7 @@ def _load_rules_or_exit(args: argparse.Namespace):
         raise SystemExit(3) from exc
 
 
-def _parse_one(args: argparse.Namespace, path: Path) -> ParseResult:
-    rules = _rules_from_args(args)
+def _parse_one(args: argparse.Namespace, path: Path, rules: RuleSet) -> ParseResult:
     return parse_file(
         path,
         rules=rules,
@@ -178,17 +176,16 @@ def _parse_one(args: argparse.Namespace, path: Path) -> ParseResult:
         keep_noise=args.keep_noise,
         keep_toc=args.keep_toc,
         dedupe=args.dedupe,
-        allow_loss=getattr(args, "allow_loss", False),
     )
 
 
 def _cmd_inspect(args: argparse.Namespace) -> int:
-    _load_rules_or_exit(args)
+    rules = _load_rules_or_exit(args)
     results: list[ParseResult] = []
     exit_code = 0
     for path in args.paths:
         try:
-            result = _parse_one(args, path)
+            result = _parse_one(args, path, rules)
         except Exception as exc:  # noqa: BLE001 - CLI boundary
             print(f"txt2epub: {path}: {exc}", file=sys.stderr)
             exit_code = 1
@@ -240,7 +237,7 @@ def _confirm_overwrite(output: Path, args: argparse.Namespace) -> bool:
 
 
 def _cmd_convert(args: argparse.Namespace) -> int:
-    _load_rules_or_exit(args)
+    rules = _load_rules_or_exit(args)
     if args.indent_em < 0:
         print("txt2epub: --indent-em must be non-negative", file=sys.stderr)
         return 3
@@ -259,7 +256,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
 
     for path in args.paths:
         try:
-            result = _parse_one(args, path)
+            result = _parse_one(args, path, rules)
         except Exception as exc:  # noqa: BLE001 - CLI boundary
             failures += 1
             print(f"FAIL {path}: {exc}", file=sys.stderr)
@@ -296,8 +293,6 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             continue
 
         try:
-            from txt2epub_cli.epub import write_epub
-
             output.parent.mkdir(parents=True, exist_ok=True)
             write_epub(
                 result,

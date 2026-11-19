@@ -173,20 +173,7 @@ def builtin_ruleset(name: str = "auto") -> RuleSet:
 
 
 def _clone_ruleset(rules: RuleSet) -> RuleSet:
-    clone = copy.copy(rules)
-    clone.volume_patterns = list(rules.volume_patterns)
-    clone.chapter_patterns = list(rules.chapter_patterns)
-    clone.section_patterns = list(rules.section_patterns)
-    clone.combined_patterns = list(rules.combined_patterns)
-    clone.special_titles = list(rules.special_titles)
-    clone.special_patterns = list(rules.special_patterns)
-    clone.invalid_volume_suffixes = list(rules.invalid_volume_suffixes)
-    clone.invalid_chapter_suffixes = list(rules.invalid_chapter_suffixes)
-    clone.noise_patterns = list(rules.noise_patterns)
-    clone.toc_titles = list(rules.toc_titles)
-    clone.pure_number_patterns = list(rules.pure_number_patterns)
-    clone.volume_suffix_special_suffixes = list(rules.volume_suffix_special_suffixes)
-    return clone
+    return copy.deepcopy(rules)
 
 
 def _table(data: dict, section: str) -> dict:

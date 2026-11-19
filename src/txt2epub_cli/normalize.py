@@ -18,7 +18,6 @@ _INVALID_CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f\ufffe\uffff]"
 _DECORATION_RE = re.compile(r"^[ \t]*[-=*#~_]{2,}[ \t]*|[ \t]*[-=*#~_]{2,}[ \t]*$")
 _BRACKET_PAIRS = {"【": "】", "[": "]", "「": "」"}
 _MAX_BRACKET_INNER = 60
-_FULLWIDTH_DIGITS = str.maketrans("０１２３４５６７８９", "0123456789")
 
 
 def normalize_text(s: str) -> str:
@@ -39,12 +38,6 @@ def normalize_for_match(s: str) -> str:
 def indent_of(s: str) -> str:
     """Return the leading run of ideographic spaces, ASCII spaces, and tabs."""
     return s[: len(s) - len(s.lstrip(_INDENT_CHARS))]
-
-
-def is_body_indent(s: str) -> bool:
-    """Return whether *s* starts with a typical Chinese body-text indent."""
-    indent = indent_of(s)
-    return indent.startswith("\u3000") or indent.count(" ") >= 2 or "\t" in indent
 
 
 def strip_heading_decoration(s: str) -> str:
@@ -84,12 +77,6 @@ def make_source_lines(text: str) -> list[SourceLine]:
             )
         )
     return lines
-
-
-def normalize_number(s: str) -> str:
-    """Compact a heading number and convert full-width digits to ASCII."""
-    compact = "".join(char for char in s if not char.isspace())
-    return compact.translate(_FULLWIDTH_DIGITS)
 
 
 def _strip_decoration_runs(s: str) -> str:

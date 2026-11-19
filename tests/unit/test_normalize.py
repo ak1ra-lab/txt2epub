@@ -7,10 +7,8 @@ import pytest
 from txt2epub_cli.normalize import (
     ZERO_WIDTH,
     indent_of,
-    is_body_indent,
     make_source_lines,
     normalize_for_match,
-    normalize_number,
     normalize_text,
     split_lines,
     strip_heading_decoration,
@@ -55,20 +53,6 @@ def test_normalize_for_match_strips() -> None:
 )
 def test_indent_of(line: str, expected: str) -> None:
     assert indent_of(line) == expected
-
-
-@pytest.mark.parametrize(
-    ("line", "expected"),
-    [
-        ("　　第一章", True),
-        ("  正文", True),
-        (" 正文", False),
-        ("\t正文", True),
-        ("正文", False),
-    ],
-)
-def test_is_body_indent(line: str, expected: bool) -> None:
-    assert is_body_indent(line) is expected
 
 
 @pytest.mark.parametrize(
@@ -171,22 +155,6 @@ def test_make_source_lines_applies_nfc() -> None:
 
     assert line.stripped == "\u00e9"
     assert line.normalized == "\u00e9"
-
-
-@pytest.mark.parametrize(
-    ("value", "expected"),
-    [
-        ("１２３", "123"),
-        ("第 １２３ 章", "第123章"),
-        ("第　１２　章", "第12章"),
-        ("第１、２章", "第1、2章"),
-        ("一，二", "一，二"),
-        ("  12  ", "12"),
-        ("", ""),
-    ],
-)
-def test_normalize_number(value: str, expected: str) -> None:
-    assert normalize_number(value) == expected
 
 
 def test_normalize_text_removes_xml_invalid_controls() -> None:
