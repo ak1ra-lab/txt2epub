@@ -19,6 +19,6 @@ python_package_import_name: txt2epub_cli
 repository_name: txt2epub
 repository_namespace: ak1ra-lab
 repository_provider_host: github.com
-repository_provider_kind: custom
+repository_provider_kind: github
 requires_python: '>=3.11'
 with_ansible: false

@@ -7,13 +7,23 @@
   安装。
 
 发行包名为 `txt2epub-cli`，命令行为 `txt2epub`，导入包为 `txt2epub_cli`。
-推荐在仓库根目录使用 `uv tool install .` 或虚拟环境安装；独立的导入包名可以
-避免与 PyPI 上无关的 `txt2epub` 包冲突。
+推荐使用独立工具环境或虚拟环境安装；独立的导入包名可以避免与 PyPI 上无关的
+`txt2epub` 包冲突。
+
+## 从 PyPI 安装
+
+```bash
+# 推荐：安装为独立 CLI 工具
+uv tool install txt2epub-cli
+
+# 或安装到当前环境
+pip install txt2epub-cli
+```
 
 ## 从源码安装
 
 ```bash
-git clone git@github.com:ak1ra-lab/txt2epub.git
+git clone https://github.com/ak1ra-lab/txt2epub.git
 cd txt2epub
 
 uv sync --group dev
@@ -24,6 +34,13 @@ uv run txt2epub --help
 
 ```bash
 pip install -e .
+txt2epub --help
+```
+
+如果要把当前工作树安装为独立工具：
+
+```bash
+uv tool install .
 txt2epub --help
 ```
 

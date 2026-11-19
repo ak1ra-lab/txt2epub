@@ -22,9 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `argcomplete` shell completion for the `txt2epub` command
 - Copier-based project scaffold with `uv`, `ruff`, `ty`, `pytest`,
   `mkdocs-material`, pre-commit, and bilingual documentation
+- Explicit AI usage disclosure in the README and documentation
 
 ### Changed
 
+- Move project hosting and package metadata URLs to
+  <https://github.com/ak1ra-lab/txt2epub>
+- Replace GitLab CI with GitHub Actions for lint, type checking, multi-version
+  tests, and package builds; PyPI publishing remains tag-driven
 - Rename the distribution to `txt2epub-cli`, keep the `txt2epub` CLI command,
   and move the import package to `txt2epub_cli` to avoid a collision with the
   PyPI package named `txt2epub`
@@ -47,5 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Unused `Dockerfile` and `.dockerignore`
+- GitLab CI configuration; GitHub Actions is now the active pipeline
+- Pre-release status notices from the README and documentation
 - Committed local sample smoke script; use the opt-in
   `TXT2EPUB_LOCAL_SAMPLES=1` pytest marker instead

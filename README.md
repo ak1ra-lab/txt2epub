@@ -8,13 +8,10 @@ gets a disposition in a line ledger, and conversion refuses to write an EPUB
 unless the source/output/dropped text multiset balances (unless you explicitly
 pass `--allow-loss`).
 
-> **Status:** pre-release. The distribution is named `txt2epub-cli`; it is not
-> published on PyPI yet. Install from source as shown below; use a virtualenv or
-> `uv tool install .` to keep the CLI isolated.
->
-> **Package naming:** the CLI command is `txt2epub` and the import package is
-> `txt2epub_cli`. The separate import name avoids clashing with the unrelated
-> PyPI package `txt2epub` in `site-packages`.
+> **AI usage disclosure:** Most of this codebase was written by AI coding
+> agents. Human maintainers have verified behavior with automated tests and
+> real-book conversions, but have not performed a rigorous line-by-line review.
+> Review the source before relying on it in sensitive environments.
 
 ## Features
 
@@ -39,7 +36,21 @@ pass `--allow-loss`).
 Requires Python 3.11+.
 
 ```bash
-git clone git@github.com:ak1ra-lab/txt2epub.git
+# isolated CLI install (recommended)
+uv tool install txt2epub-cli
+
+# or install into the current environment
+pip install txt2epub-cli
+```
+
+The distribution is named `txt2epub-cli`; the CLI command is `txt2epub` and the
+import package is `txt2epub_cli`. The separate import name avoids clashing with
+the unrelated PyPI package `txt2epub`.
+
+From a source checkout:
+
+```bash
+git clone https://github.com/ak1ra-lab/txt2epub.git
 cd txt2epub
 
 # with uv (recommended for development)
@@ -48,10 +59,6 @@ uv run txt2epub --help
 
 # or install the working tree into the current environment
 pip install -e .
-txt2epub --help
-
-# or install as an isolated uv tool
-uv tool install .
 txt2epub --help
 ```
 

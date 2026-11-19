@@ -7,6 +7,13 @@ The design goal is **never silently lose body text**. Every source line gets a
 disposition in a line ledger, and conversion refuses to write an EPUB unless the
 source/output/dropped text multiset balances (unless `--allow-loss` is passed).
 
+!!! warning "AI usage disclosure"
+
+    Most of this codebase was written by AI coding agents. Human maintainers
+    have verified behavior through automated tests and real-book conversions,
+    but have not performed a rigorous line-by-line review. Review the source
+    before relying on it in sensitive environments.
+
 ## Highlights
 
 - Detects UTF-8, UTF-8 BOM, UTF-16, GB18030, and Big5 input with CRLF or LF
@@ -21,11 +28,13 @@ source/output/dropped text multiset balances (unless `--allow-loss` is passed).
   coverage, and suspicious lines without rewriting the source.
 - Converts one file or a batch; one failure does not stop the rest.
 
-## Status
+## Install
 
-This project is pre-release. The distribution is named `txt2epub-cli`, and it
-is not published on PyPI yet. Install from source, preferably with
-`uv tool install .` from the repository root.
+The distribution is available on PyPI as `txt2epub-cli`:
+
+```bash
+uv tool install txt2epub-cli
+```
 
 The CLI command is `txt2epub`; the import package is `txt2epub_cli`. The
 separate import name avoids clashing with the unrelated PyPI package

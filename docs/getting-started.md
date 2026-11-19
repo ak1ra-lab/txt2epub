@@ -7,14 +7,24 @@
   plain editable install.
 
 The distribution is named `txt2epub-cli`; the CLI command is `txt2epub` and the
-import package is `txt2epub_cli`. Install it in a virtualenv, or run
-`uv tool install .` from the repository root. The separate import name avoids
-clashing with the unrelated PyPI package `txt2epub`.
+import package is `txt2epub_cli`. Install it in an isolated tool environment or
+a virtualenv. The separate import name avoids clashing with the unrelated PyPI
+package `txt2epub`.
+
+## Install from PyPI
+
+```bash
+# isolated CLI install (recommended)
+uv tool install txt2epub-cli
+
+# or install into the current environment
+pip install txt2epub-cli
+```
 
 ## Install from source
 
 ```bash
-git clone git@github.com:ak1ra-lab/txt2epub.git
+git clone https://github.com/ak1ra-lab/txt2epub.git
 cd txt2epub
 
 uv sync --group dev
@@ -25,6 +35,13 @@ To install the working tree into the current environment instead:
 
 ```bash
 pip install -e .
+txt2epub --help
+```
+
+To install the checkout as an isolated tool:
+
+```bash
+uv tool install .
 txt2epub --help
 ```
 
