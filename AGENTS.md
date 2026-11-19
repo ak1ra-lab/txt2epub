@@ -32,8 +32,9 @@ more flexible - the two are equivalent, not mutually exclusive.
   ty). Run it explicitly before committing - the hooks are not a passive safety
   net.
 - CI: GitHub Actions under `.github/workflows/` runs ruff, ty, and pytest on
-  Python 3.11-3.14. The docs workflow builds the mkdocs site; the PyPI workflow
-  publishes `v*` tags through trusted publishing.
+  Python 3.11-3.14. The docs workflow builds and deploys the mkdocs site to
+  GitHub Pages; the PyPI workflow publishes `v*` tags through trusted
+  publishing.
 
 Python changes MUST pass ruff, ty, and pytest before commit, then
 `uv run pre-commit run --all-files` as the final gate for the remaining hooks.

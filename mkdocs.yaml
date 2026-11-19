@@ -1,7 +1,7 @@
 ---
 site_name: "txt2epub"
 site_description: "Auditable Chinese TXT to EPUB 3 converter with multi-level TOC"
-site_url: ""
+site_url: "https://ak1ra-lab.github.io/txt2epub/"
 site_author: "ak1ra"
 copyright: "Copyright \u0026copy; 2026 ak1ra"
 repo_url: "https://github.com/ak1ra-lab/txt2epub"

@@ -255,7 +255,8 @@ are split at paragraph boundaries; only the first fragment appears in the TOC.
 
 ## Documentation
 
-User documentation lives in `docs/` and is written in English and Simplified
+User documentation lives in `docs/` and is published at
+<https://ak1ra-lab.github.io/txt2epub/>. It is written in English and Simplified
 Chinese (`*.md` plus `*.zh.md`). Build it locally with:
 
 ```bash
