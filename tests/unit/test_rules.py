@@ -38,7 +38,6 @@ def test_auto_profile_defaults() -> None:
     rules = builtin_ruleset()
     assert rules.name == "auto"
     assert rules.max_heading_length == 50
-    assert rules.require_column_zero is True
     assert rules.allow_indented_headings is True
     assert rules.pure_number_headings is False
     assert rules.volume_patterns
@@ -93,22 +92,27 @@ def test_auto_combined_pattern() -> None:
     assert match.group("chapter") == "第1章 占位章名"
 
 
-def test_zxs_noise_patterns() -> None:
+def test_site_specific_noise_is_a_toml_override() -> None:
     auto = builtin_ruleset()
-    zxs = builtin_ruleset("zxs")
     assert not _noise(auto, "知轩藏书")
-    assert _noise(zxs, "知轩藏书")
-    assert _noise(zxs, "更多精校小说")
-    assert _noise(zxs, "http://www.zxcs.me")
     assert _noise(auto, "百度搜索")
     assert _noise(auto, "<br>")
     assert not _noise(auto, "这是一段普通正文，没有广告")
+
+    rules = parse_toml_rules(
+        """
+[noise]
+patterns = ["知轩藏书", "更多精校小说", 'zxcs\\.me']
+"""
+    )
+    assert _noise(rules, "知轩藏书")
+    assert _noise(rules, "更多精校小说")
+    assert _noise(rules, "http://www.zxcs.me")
 
 
 def test_strict_profile_requires_separator() -> None:
     rules = builtin_ruleset("strict")
     assert rules.max_heading_length == 40
-    assert rules.require_column_zero is True
     assert rules.allow_indented_headings is False
     assert not _matches(rules.chapter_patterns, "第一章活着")
     assert _matches(rules.chapter_patterns, "第1章 标题")
@@ -130,6 +134,8 @@ def test_loose_profile_enables_pure_numbers() -> None:
 def test_unknown_profile_raises() -> None:
     with pytest.raises(ValueError, match="unknown rules profile"):
         builtin_ruleset("nope")
+    with pytest.raises(ValueError, match="unknown rules profile"):
+        builtin_ruleset("zxs")
 
 
 def test_make_ruleset_overrides_and_file(tmp_path) -> None:
@@ -146,7 +152,6 @@ def test_make_ruleset_overrides_and_file(tmp_path) -> None:
     )
     assert rules.max_heading_length == 12
     assert rules.allow_indented_headings is True
-    assert rules.require_column_zero is True
 
 
 def test_load_rules_reads_toml(tmp_path) -> None:
@@ -165,17 +170,13 @@ def test_parse_toml_heading_values() -> None:
         """
 [heading]
 max_length = 30
-require_column_zero = false
 allow_indented_headings = false
-allowed_indent = "  "
 pure_number_headings = true
 volume_suffix_special_suffixes = ["序", "跋"]
 """
     )
     assert rules.max_heading_length == 30
-    assert rules.require_column_zero is False
     assert rules.allow_indented_headings is False
-    assert rules.allowed_indent == "  "
     assert rules.pure_number_headings is True
     assert rules.volume_suffix_special_suffixes == ["序", "跋"]
 
@@ -271,6 +272,8 @@ def test_parse_toml_unknown_key_raises() -> None:
         parse_toml_rules("mystery = true\n")
     with pytest.raises(ValueError, match="nope"):
         parse_toml_rules("[patterns]\nnope = 'x'\n")
+    with pytest.raises(ValueError, match="require_column_zero"):
+        parse_toml_rules("[heading]\nrequire_column_zero = true\n")
 
 
 def test_parse_toml_bad_regex_raises_with_context() -> None:
@@ -286,7 +289,7 @@ def test_parse_toml_invalid_toml_raises() -> None:
 
 
 def test_builtin_rulesets_are_independent() -> None:
-    first = builtin_ruleset("zxs")
-    second = builtin_ruleset("zxs")
+    first = builtin_ruleset("auto")
+    second = builtin_ruleset("auto")
     first.noise_patterns.append(re.compile("only-in-first"))
     assert not _noise(second, "only-in-first")

@@ -51,8 +51,6 @@ _GENERIC_NOISE = [
     "br>",
 ]
 
-_ZXS_NOISE = ["知轩藏书", "更多精校小说", r"zxcs\.me"]
-
 _VOLUME_PATTERNS = [
     rf"^第(?P<num>[{NUM}]+)[卷部篇册](?:[\s\u3000:：、,，.\-—]+(?P<title>.*))?$",
     rf"^卷(?P<num>[{NUM}]+)(?:[\s\u3000:：、,，.\-—]+(?P<title>.*))?$",
@@ -96,9 +94,7 @@ def _compile(patterns: list[str], context: str) -> list[re.Pattern[str]]:
 class RuleSet:
     name: str = "auto"
     max_heading_length: int = 50
-    require_column_zero: bool = True
     allow_indented_headings: bool = True
-    allowed_indent: str = "\u3000"
     volume_patterns: list[re.Pattern[str]] = field(default_factory=list)
     chapter_patterns: list[re.Pattern[str]] = field(default_factory=list)
     section_patterns: list[re.Pattern[str]] = field(default_factory=list)
@@ -145,14 +141,8 @@ def builtin_ruleset(name: str = "auto") -> RuleSet:
     if profile == "auto":
         return _new_ruleset("auto")
 
-    if profile == "zxs":
-        rules = _new_ruleset("zxs")
-        rules.noise_patterns.extend(re.compile(pattern) for pattern in _ZXS_NOISE)
-        return rules
-
     if profile == "strict":
         rules = _new_ruleset("strict")
-        rules.require_column_zero = True
         rules.allow_indented_headings = False
         rules.max_heading_length = 40
         rules.chapter_patterns = _compile(
@@ -168,7 +158,7 @@ def builtin_ruleset(name: str = "auto") -> RuleSet:
         return rules
 
     raise ValueError(
-        f"unknown rules profile: {name!r}; expected one of: auto, zxs, strict, loose"
+        f"unknown rules profile: {name!r}; expected one of: auto, strict, loose"
     )
 
 
@@ -198,12 +188,6 @@ def _as_bool(value: object, key: str) -> bool:
 def _as_int(value: object, key: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool):
         raise ValueError(f"rules key {key} must be an integer")
-    return value
-
-
-def _as_str(value: object, key: str) -> str:
-    if not isinstance(value, str):
-        raise ValueError(f"rules key {key} must be a string")
     return value
 
 
@@ -240,9 +224,7 @@ def parse_toml_rules(text: str, base: RuleSet | None = None) -> RuleSet:
         heading,
         {
             "max_length",
-            "require_column_zero",
             "allow_indented_headings",
-            "allowed_indent",
             "pure_number_headings",
             "volume_suffix_special_suffixes",
         },
@@ -252,17 +234,9 @@ def parse_toml_rules(text: str, base: RuleSet | None = None) -> RuleSet:
         rules.max_heading_length = _as_int(
             heading["max_length"], "[heading] max_length"
         )
-    if "require_column_zero" in heading:
-        rules.require_column_zero = _as_bool(
-            heading["require_column_zero"], "[heading] require_column_zero"
-        )
     if "allow_indented_headings" in heading:
         rules.allow_indented_headings = _as_bool(
             heading["allow_indented_headings"], "[heading] allow_indented_headings"
-        )
-    if "allowed_indent" in heading:
-        rules.allowed_indent = _as_str(
-            heading["allowed_indent"], "[heading] allowed_indent"
         )
     if "pure_number_headings" in heading:
         rules.pure_number_headings = _as_bool(
