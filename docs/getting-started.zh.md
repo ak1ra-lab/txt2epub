@@ -3,12 +3,9 @@
 ## 前置条件
 
 - Python 3.11 或更高版本。
-- 推荐使用 [uv](https://docs.astral.sh/uv/)；也可以使用 `pip` 进行可编辑
-  安装。
+- [uv](https://docs.astral.sh/uv/)。
 
-发行包名为 `txt2epub-cli`，命令行为 `txt2epub`，导入包为 `txt2epub_cli`。
-推荐使用独立工具环境或虚拟环境安装；独立的导入包名可以避免与 PyPI 上无关的
-`txt2epub` 包冲突。
+PyPI 发行包名为 `txt2epub-cli`，命令行为 `txt2epub`。
 
 ## 从 PyPI 安装
 
@@ -16,44 +13,35 @@
 # 推荐：安装为独立 CLI 工具
 uv tool install txt2epub-cli
 
-# 或安装到当前环境
-pip install txt2epub-cli
+# 不安装，直接运行一次
+uvx --from txt2epub-cli txt2epub --help
 ```
 
-## 从源码安装
+## 从源码 checkout 运行
 
 ```bash
 git clone https://github.com/ak1ra-lab/txt2epub.git
 cd txt2epub
 
-uv sync --group dev
+uv sync
 uv run txt2epub --help
 ```
 
-如果要把当前工作树安装到现有环境：
+开发时安装开发依赖组，并在同一个 checkout 中运行质量检查：
 
 ```bash
-pip install -e .
-txt2epub --help
+uv sync --group dev
+uv run pre-commit install
 ```
-
-如果要把当前工作树安装为独立工具：
-
-```bash
-uv tool install .
-txt2epub --help
-```
-
-也可以使用 `python -m txt2epub_cli ...` 运行。
 
 ## 检查文本
 
 `inspect` 只解析源文件并输出报告，不写 EPUB：
 
 ```bash
-uv run txt2epub inspect book.txt
-uv run txt2epub inspect book.txt --json
-uv run txt2epub inspect examples/**/*.txt --json > report.json
+txt2epub inspect book.txt
+txt2epub inspect book.txt --json
+txt2epub inspect examples/**/*.txt --json > report.json
 ```
 
 人类可读输出包含编码、行数和字符数、前言、标题统计、首尾标题、问题摘要、
@@ -64,19 +52,26 @@ uv run txt2epub inspect examples/**/*.txt --json > report.json
 
 ```bash
 # 在源文件旁边生成 book.epub
-uv run txt2epub convert book.txt
+txt2epub convert book.txt
 
 # 批量输出到目录
-uv run txt2epub convert *.txt -o out/
+txt2epub convert *.txt -o out/
 
 # 只解析和报告，不写文件
-uv run txt2epub convert book.txt --dry-run
+txt2epub convert book.txt --dry-run
 
 # 为自动化流程写 JSON 报告
-uv run txt2epub convert *.txt -o out/ --report out/report.json
+txt2epub convert *.txt -o out/ --report out/report.json
 
-# 非交互覆盖已有输出
-uv run txt2epub convert *.txt -o out/ --yes
+# 覆盖已有输出
+txt2epub convert *.txt -o out/ --force
+```
+
+如果目标文件已存在，`convert` 会直接跳过，不会询问。需要覆盖时传入
+`--force`。全部任务结束后会汇总成功、失败和跳过的数量：
+
+```text
+Summary: 3 succeeded, 1 failed, 2 skipped
 ```
 
 写入 XHTML 前，正文段落会去掉源文件中的前导和尾随空格及制表符。缩进由
@@ -89,35 +84,8 @@ EPUB 样式表控制，默认使用 `text-indent: 2em`。可以用 `--no-indent`
 eval "$(register-python-argcomplete txt2epub)"
 ```
 
-## 开发
+## 下一步
 
-```bash
-uv sync --group dev
-uv run pre-commit install
-
-just lint
-just typecheck
-just test
-just coverage
-just build
-just docs-build
-```
-
-提交到仓库的测试只使用合成的占位 fixture。`examples/txt/` 和
-`examples/epub/` 下的本地样本已被 git 忽略：
-
-```bash
-TXT2EPUB_LOCAL_SAMPLES=1 uv run pytest -m local
-```
-
-## 退出码
-
-| 退出码 | 含义 |
-| ---: | --- |
-| 0 | 成功 |
-| 1 | 解析 / 写入 / 输入错误 |
-| 2 | 覆盖率或校验失败 |
-| 3 | 规则或配置错误 |
-
-批量处理时，单个文件失败后会继续处理其余文件；最终退出码反映是否发生过
-失败。
+- [命令行参考](cli.zh.md) - 全部选项、报告字段和退出码。
+- [规则与 TOML 配置](configuration.zh.md) - 针对源文件调整章节识别规则。
+- [工作原理](how-it-works.zh.md) - 覆盖率、重复处理、输出结构和已知限制。

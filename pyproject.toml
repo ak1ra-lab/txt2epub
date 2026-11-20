@@ -24,7 +24,10 @@ license = "GPL-3.0-only"
 
 [project.urls]
 Homepage = "https://github.com/ak1ra-lab/txt2epub"
+Documentation = "https://ak1ra-lab.github.io/txt2epub/"
 Repository = "https://github.com/ak1ra-lab/txt2epub"
+Issues = "https://github.com/ak1ra-lab/txt2epub/issues"
+Changelog = "https://github.com/ak1ra-lab/txt2epub/blob/main/CHANGELOG.md"
 
 [project.scripts]
 txt2epub = "txt2epub_cli.cli:main"
@@ -49,7 +52,6 @@ docs = [
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.8.1",
     "mkdocs-static-i18n>=1.3.1",
-    "mkdocstrings[python]>=1.0.8",
 ]
 dev = [
     { include-group = "tests" },

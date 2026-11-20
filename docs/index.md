@@ -22,11 +22,15 @@ source/output/dropped text multiset balances (unless `--allow-loss` is passed).
   `番外`, `终章`, `后记`, and `完本感言`.
 - Handles awkward but common headings: `第一章活着`, `第0001章`,
   `第一卷 卷名 第1章 章名`, multi-number headings, and indented headings.
+- Removes common site ads and watermarks, detects embedded TOC pages, and
+  reports duplicate chapter numbers and numbering gaps without renaming
+  anything.
 - Generates nested EPUB 3 `nav.xhtml` and EPUB 2 `toc.ncx`, so old and new
   readers both get a proper multi-level table of contents.
-- Reports encoding, heading counts, duplicate numbers, numbering gaps,
-  coverage, and suspicious lines without rewriting the source.
-- Converts one file or a batch; one failure does not stop the rest.
+- Converts one file or a batch; one failure does not stop the rest. Existing
+  outputs are skipped unless `--force` is used.
+- Optional exact or similar chapter dedupe, plus CSS-driven first-line indent
+  and custom stylesheets.
 
 ## Install
 
@@ -36,11 +40,28 @@ The distribution is available on PyPI as `txt2epub-cli`:
 uv tool install txt2epub-cli
 ```
 
-The CLI command is `txt2epub`; the import package is `txt2epub_cli`. The
-separate import name avoids clashing with the unrelated PyPI package
-`txt2epub`.
+The CLI command is `txt2epub`. For a one-off run without installing, use
+`uvx --from txt2epub-cli txt2epub`.
 
-## Next steps
+## Quick start
 
-- [Getting Started](getting-started.md)
-- [Project README](https://github.com/ak1ra-lab/txt2epub)
+```bash
+# inspect without writing anything
+txt2epub inspect book.txt
+
+# write book.epub next to the source file
+txt2epub convert book.txt
+
+# batch into a directory
+txt2epub convert *.txt -o out/
+```
+
+## Documentation
+
+- [Getting Started](getting-started.md) - install, inspect, and convert.
+- [CLI Reference](cli.md) - every option, batch summaries, and exit codes.
+- [Rules and TOML Configuration](configuration.md) - profiles and examples for
+  different chapter structures.
+- [How It Works](how-it-works.md) - coverage, duplicate handling, output layout,
+  and limitations.
+- [Development](development.md) - tests, docs, and release workflow.

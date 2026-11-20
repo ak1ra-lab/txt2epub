@@ -3,13 +3,9 @@
 ## Prerequisites
 
 - Python 3.11 or newer.
-- [uv](https://docs.astral.sh/uv/) for the recommended workflow, or `pip` for a
-  plain editable install.
+- [uv](https://docs.astral.sh/uv/).
 
-The distribution is named `txt2epub-cli`; the CLI command is `txt2epub` and the
-import package is `txt2epub_cli`. Install it in an isolated tool environment or
-a virtualenv. The separate import name avoids clashing with the unrelated PyPI
-package `txt2epub`.
+The PyPI distribution is `txt2epub-cli` and the CLI command is `txt2epub`.
 
 ## Install from PyPI
 
@@ -17,44 +13,36 @@ package `txt2epub`.
 # isolated CLI install (recommended)
 uv tool install txt2epub-cli
 
-# or install into the current environment
-pip install txt2epub-cli
+# run once without installing
+uvx --from txt2epub-cli txt2epub --help
 ```
 
-## Install from source
+## Run from a source checkout
 
 ```bash
 git clone https://github.com/ak1ra-lab/txt2epub.git
 cd txt2epub
 
-uv sync --group dev
+uv sync
 uv run txt2epub --help
 ```
 
-To install the working tree into the current environment instead:
+For development, install the development dependency group and run the quality
+gates from the same checkout:
 
 ```bash
-pip install -e .
-txt2epub --help
+uv sync --group dev
+uv run pre-commit install
 ```
-
-To install the checkout as an isolated tool:
-
-```bash
-uv tool install .
-txt2epub --help
-```
-
-`python -m txt2epub_cli ...` works as well.
 
 ## Inspect a book
 
 `inspect` parses the source and prints a report without writing an EPUB:
 
 ```bash
-uv run txt2epub inspect book.txt
-uv run txt2epub inspect book.txt --json
-uv run txt2epub inspect examples/**/*.txt --json > report.json
+txt2epub inspect book.txt
+txt2epub inspect book.txt --json
+txt2epub inspect examples/**/*.txt --json > report.json
 ```
 
 Human output includes encoding, line and character counts, front matter,
@@ -66,19 +54,27 @@ the list.
 
 ```bash
 # write book.epub next to the source file
-uv run txt2epub convert book.txt
+txt2epub convert book.txt
 
 # batch into a directory
-uv run txt2epub convert *.txt -o out/
+txt2epub convert *.txt -o out/
 
 # parse and report only
-uv run txt2epub convert book.txt --dry-run
+txt2epub convert book.txt --dry-run
 
 # write a JSON report for automation
-uv run txt2epub convert *.txt -o out/ --report out/report.json
+txt2epub convert *.txt -o out/ --report out/report.json
 
-# overwrite existing outputs non-interactively
-uv run txt2epub convert *.txt -o out/ --yes
+# overwrite existing outputs
+txt2epub convert *.txt -o out/ --force
+```
+
+If the target file already exists, `convert` skips it without prompting. Pass
+`--force` to overwrite it. The final summary counts succeeded, failed, and
+skipped files:
+
+```text
+Summary: 3 succeeded, 1 failed, 2 skipped
 ```
 
 Body paragraphs are stripped of leading and trailing spaces and tabs before
@@ -92,35 +88,10 @@ the default uses `text-indent: 2em`. Use `--no-indent`, `--indent-em`, or
 eval "$(register-python-argcomplete txt2epub)"
 ```
 
-## Development
+## Next steps
 
-```bash
-uv sync --group dev
-uv run pre-commit install
-
-just lint
-just typecheck
-just test
-just coverage
-just build
-just docs-build
-```
-
-Committed tests use synthetic placeholder fixtures only. Local samples under
-`examples/txt/` or `examples/epub/` are gitignored:
-
-```bash
-TXT2EPUB_LOCAL_SAMPLES=1 uv run pytest -m local
-```
-
-## Exit codes
-
-| code | meaning |
-| ---: | --- |
-| 0 | success |
-| 1 | parse / write / input error |
-| 2 | coverage or validation failure |
-| 3 | rule/config error |
-
-For a batch, processing continues after a failure; the final exit code reflects
-whether any file failed.
+- [CLI Reference](cli.md) - all options, report fields, and exit codes.
+- [Rules and TOML Configuration](configuration.md) - tune heading detection for
+  your source files.
+- [How It Works](how-it-works.md) - coverage, duplicates, output layout, and
+  limitations.

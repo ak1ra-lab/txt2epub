@@ -13,6 +13,10 @@ dev_addr: 0.0.0.0:8000
 nav:
   - Home: index.md
   - Getting Started: getting-started.md
+  - CLI Reference: cli.md
+  - Rules and TOML: configuration.md
+  - How It Works: how-it-works.md
+  - Development: development.md
 
 theme:
   name: material
@@ -28,6 +32,7 @@ markdown_extensions:
   - attr_list
   - pymdownx.superfences
   - md_in_html
+  - tables
   - toc:
       permalink: true
 
@@ -48,7 +53,7 @@ plugins:
           nav_translations:
             Home: 首页
             Getting Started: 入门指南
-  - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
+            CLI Reference: 命令行参考
+            Rules and TOML: 规则与 TOML 配置
+            How It Works: 工作原理
+            Development: 开发
