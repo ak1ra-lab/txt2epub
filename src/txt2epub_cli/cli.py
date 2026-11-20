@@ -17,7 +17,7 @@ from txt2epub_cli.parser import parse_file
 from txt2epub_cli.report import report_dict, report_human
 from txt2epub_cli.rules import RuleSet, make_ruleset
 
-PROFILES = ("auto", "zxs", "strict", "loose")
+PROFILES = ("auto", "strict", "loose")
 DEDUPE_MODES = ("off", "exact", "similar")
 
 
@@ -116,12 +116,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="write EPUB even when coverage verification fails",
     )
     convert.add_argument(
-        "--force", action="store_true", help="overwrite existing output files"
-    )
-    convert.add_argument(
-        "--yes",
+        "--force",
         action="store_true",
-        help="answer yes to overwrite prompts (non-interactive batch mode)",
+        help="overwrite existing output files (default: skip them)",
     )
     convert.add_argument(
         "--split-size",
@@ -205,7 +202,7 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         return exit_code
 
-    limit = 1000 if args.verbose else args.limit
+    limit = None if args.verbose else args.limit
     ignore_codes = _issue_codes(args.ignore_issue)
     only_codes = _issue_codes(args.only_issue)
     for index, result in enumerate(results):
@@ -227,19 +224,19 @@ def _default_output(path: Path, args: argparse.Namespace) -> Path:
     return directory / f"{path.stem}.epub"
 
 
-def _confirm_overwrite(output: Path, args: argparse.Namespace) -> bool:
-    if args.force or args.yes:
-        return True
-    if not sys.stdin.isatty():
-        return False
-    answer = input(f"{output} exists; overwrite? [y/N] ").strip().lower()
-    return answer in {"y", "yes"}
+def _report_entry(result: ParseResult, status: str, output: Path | None = None) -> dict:
+    entry = report_dict(result, output)
+    entry["status"] = status
+    return entry
 
 
 def _cmd_convert(args: argparse.Namespace) -> int:
     rules = _load_rules_or_exit(args)
     if args.indent_em < 0:
         print("txt2epub: --indent-em must be non-negative", file=sys.stderr)
+        return 3
+    if args.split_size <= 0:
+        print("txt2epub: --split-size must be positive", file=sys.stderr)
         return 3
     indent_em = 0.0 if args.no_indent else args.indent_em
     custom_css: str | None = None
@@ -252,18 +249,42 @@ def _cmd_convert(args: argparse.Namespace) -> int:
     reports: list[dict] = []
     successes = 0
     failures = 0
+    skipped = 0
     coverage_failures = 0
 
     for path in args.paths:
+        output = _default_output(path, args)
+
+        # Skip before parsing: a batch re-run should not re-read books whose
+        # output already exists, and convert must never prompt.
+        if not args.dry_run and not args.force and output.exists() and path.is_file():
+            skipped += 1
+            print(f"SKIP {path}: {output} exists (use --force to overwrite)")
+            reports.append(
+                {
+                    "schema_version": 1,
+                    "file": str(path),
+                    "output": str(output),
+                    "status": "skipped",
+                }
+            )
+            continue
+
         try:
             result = _parse_one(args, path, rules)
         except Exception as exc:  # noqa: BLE001 - CLI boundary
             failures += 1
             print(f"FAIL {path}: {exc}", file=sys.stderr)
-            reports.append({"schema_version": 1, "file": str(path), "error": str(exc)})
+            reports.append(
+                {
+                    "schema_version": 1,
+                    "file": str(path),
+                    "status": "failed",
+                    "error": str(exc),
+                }
+            )
             continue
 
-        output = _default_output(path, args)
         if not result.coverage.ok and not args.allow_loss:
             coverage_failures += 1
             failures += 1
@@ -273,7 +294,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 "use --allow-loss to write anyway",
                 file=sys.stderr,
             )
-            reports.append(report_dict(result))
+            reports.append(_report_entry(result, "failed"))
             continue
 
         if args.dry_run:
@@ -283,13 +304,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 f"{result.stats.chapters} chapters, {result.stats.specials} specials, "
                 f"coverage {'ok' if result.coverage.ok else 'mismatch'}"
             )
-            reports.append(report_dict(result))
-            continue
-
-        if output.exists() and not _confirm_overwrite(output, args):
-            failures += 1
-            print(f"SKIP {output}: exists (use --force or --yes)", file=sys.stderr)
-            reports.append(report_dict(result))
+            reports.append(_report_entry(result, "dry-run"))
             continue
 
         try:
@@ -308,7 +323,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
                 import traceback
 
                 traceback.print_exc()
-            reports.append(report_dict(result))
+            reports.append(_report_entry(result, "failed"))
             continue
 
         successes += 1
@@ -317,7 +332,7 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             f"({result.stats.volumes} volumes, {result.stats.chapters} chapters, "
             f"coverage {'ok' if result.coverage.ok else 'mismatch'})"
         )
-        reports.append(report_dict(result, output))
+        reports.append(_report_entry(result, "converted", output))
 
     if args.report is not None and reports:
         try:
@@ -335,12 +350,10 @@ def _cmd_convert(args: argparse.Namespace) -> int:
             failures += 1
             print(f"FAIL writing report {args.report}: {exc}", file=sys.stderr)
 
-    print(f"Summary: {successes} succeeded, {failures} failed")
-    if coverage_failures and not successes:
-        return 2
-    if coverage_failures and failures == coverage_failures:
-        return 2
-    return 1 if failures else 0
+    print(f"Summary: {successes} succeeded, {failures} failed, {skipped} skipped")
+    if failures:
+        return 2 if coverage_failures == failures else 1
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:

@@ -53,7 +53,6 @@ def test_cli_convert_batch_and_report(tmp_path: Path):
         str(tmp_path),
         "--report",
         str(tmp_path / "report.json"),
-        "--yes",
     )
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "simple_arabic.epub").is_file()
@@ -61,6 +60,72 @@ def test_cli_convert_batch_and_report(tmp_path: Path):
     payload = json.loads((tmp_path / "report.json").read_text(encoding="utf-8"))
     assert len(payload["files"]) == 2
     assert payload["files"][0]["output"].endswith(".epub")
+    assert payload["files"][0]["status"] == "converted"
+
+
+def test_cli_convert_skips_existing_output(tmp_path: Path):
+    output = tmp_path / "simple_arabic.epub"
+    first = run_cli("convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path))
+    assert first.returncode == 0, first.stderr
+    original = output.read_bytes()
+
+    second = run_cli(
+        "convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path)
+    )
+    assert second.returncode == 0, second.stderr
+    assert "SKIP" in second.stdout
+    assert "overwrite?" not in second.stdout + second.stderr
+    assert "Summary: 0 succeeded, 0 failed, 1 skipped" in second.stdout
+    assert output.read_bytes() == original
+
+
+def test_cli_convert_force_overwrites_existing_output(tmp_path: Path):
+    import zipfile
+
+    output = tmp_path / "simple_arabic.epub"
+    first = run_cli("convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path))
+    assert first.returncode == 0, first.stderr
+    output.write_bytes(b"stale")
+
+    skipped = run_cli(
+        "convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path)
+    )
+    assert skipped.returncode == 0, skipped.stderr
+    assert output.read_bytes() == b"stale"
+
+    forced = run_cli(
+        "convert",
+        str(FIXTURES / "simple_arabic.txt"),
+        "-o",
+        str(tmp_path),
+        "--force",
+    )
+    assert forced.returncode == 0, forced.stderr
+    assert "Summary: 1 succeeded, 0 failed, 0 skipped" in forced.stdout
+    assert zipfile.is_zipfile(output)
+
+
+def test_cli_convert_summary_counts_success_failure_and_skip(tmp_path: Path):
+    first = run_cli("convert", str(FIXTURES / "simple_arabic.txt"), "-o", str(tmp_path))
+    assert first.returncode == 0, first.stderr
+
+    report = tmp_path / "report.json"
+    result = run_cli(
+        "convert",
+        str(FIXTURES / "simple_arabic.txt"),
+        str(FIXTURES / "simple_chinese.txt"),
+        str(tmp_path / "missing.txt"),
+        "-o",
+        str(tmp_path),
+        "--report",
+        str(report),
+    )
+    assert result.returncode == 1, result.stderr
+    assert "Summary: 1 succeeded, 1 failed, 1 skipped" in result.stdout
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    statuses = sorted(entry["status"] for entry in payload["files"])
+    assert statuses == ["converted", "failed", "skipped"]
 
 
 def test_cli_dry_run_writes_nothing(tmp_path: Path):
@@ -116,7 +181,6 @@ def test_convert_refuses_coverage_loss_unless_allowed(monkeypatch, tmp_path: Pat
             "-o",
             str(tmp_path),
             "--allow-loss",
-            "--yes",
         ]
     )
     assert code == 0
@@ -143,6 +207,38 @@ def test_cli_inspect_issue_filters(tmp_path: Path):
     assert "number_gap" in only.stdout
 
 
+def test_cli_inspect_verbose_shows_all_issues(tmp_path: Path):
+    path = tmp_path / "many_gaps.txt"
+    path.write_text(
+        "".join(f"第{n}章 占位标题\n　　这是占位正文。\n" for n in range(1, 32, 2)),
+        encoding="utf-8",
+    )
+
+    limited = run_cli("inspect", str(path))
+    assert limited.returncode == 0, limited.stderr
+    assert "... " in limited.stdout
+    assert "more (see --json)" in limited.stdout
+
+    verbose = run_cli("inspect", str(path), "--verbose")
+    assert verbose.returncode == 0, verbose.stderr
+    assert "number_gap" in verbose.stdout
+    assert "more (see --json)" not in verbose.stdout
+
+
+def test_cli_convert_rejects_non_positive_split_size(tmp_path: Path):
+    result = run_cli(
+        "convert",
+        str(FIXTURES / "simple_arabic.txt"),
+        "-o",
+        str(tmp_path),
+        "--split-size",
+        "0",
+    )
+    assert result.returncode == 3
+    assert "--split-size must be positive" in result.stderr
+    assert not list(tmp_path.glob("*.epub"))
+
+
 def test_cli_convert_no_indent_css(tmp_path: Path):
     result = run_cli(
         "convert",
@@ -150,7 +246,6 @@ def test_cli_convert_no_indent_css(tmp_path: Path):
         "-o",
         str(tmp_path),
         "--no-indent",
-        "--yes",
     )
     assert result.returncode == 0, result.stderr
     import zipfile

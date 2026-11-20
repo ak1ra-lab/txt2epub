@@ -89,7 +89,7 @@ def report_dict(result: ParseResult, output: Path | None = None) -> dict:
 def report_human(
     result: ParseResult,
     *,
-    limit: int = 10,
+    limit: int | None = 10,
     output: Path | None = None,
     ignore_codes: set[str] | None = None,
     only_codes: set[str] | None = None,
@@ -150,15 +150,16 @@ def report_human(
     if ignore_codes:
         warnings = [issue for issue in warnings if issue.code not in ignore_codes]
 
-    if warnings and limit > 0:
+    if warnings and (limit is None or limit > 0):
         by_code = Counter(issue.code for issue in warnings)
         summary = ", ".join(f"{code}={count}" for code, count in by_code.most_common())
+        shown = warnings if limit is None else warnings[:limit]
         lines.append("")
         lines.append(f"Suspicious: {summary}")
-        for issue in warnings[:limit]:
+        for issue in shown:
             lines.append(
                 f"  [{issue.line_no}] {issue.severity}: {issue.code}: {issue.message}"
             )
-        if len(warnings) > limit:
+        if limit is not None and len(warnings) > limit:
             lines.append(f"  ... {len(warnings) - limit} more (see --json)")
     return "\n".join(lines)
