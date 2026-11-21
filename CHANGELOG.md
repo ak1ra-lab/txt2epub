@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-21
+
 ### Changed
 
 - `convert` now skips existing output files by default instead of prompting;
@@ -50,4 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   deployment
 - Explicit AI usage disclosure in the README and documentation
 
+[Unreleased]: https://github.com/ak1ra-lab/txt2epub/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ak1ra-lab/txt2epub/releases/tag/v0.2.0
 [0.1.0]: https://github.com/ak1ra-lab/txt2epub/releases/tag/v0.1.0
